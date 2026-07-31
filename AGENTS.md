@@ -93,8 +93,15 @@ Rscript data-raw/epiworld.R
   the vignette in a **separate R process**, which on Windows cannot see the
   temporary check library, so without this `library(aitracking)` fails there
   while Linux and macOS pass. Don't remove it.
-- `pkgdown.yaml`: builds the site and deploys it to the `gh-pages` branch →
-  <https://gvegayon.github.io/aitracking/>.
+- `pkgdown.yaml`: split into a `build` job and a `deploy` job. Deployment
+  goes through `actions/deploy-pages` (the repository's Pages source is set
+  to **GitHub Actions**, not a branch) → <https://gvegayon.github.io/aitracking/>.
+  The leftover `gh-pages` branch is vestigial; nothing reads from it.
+  On pull requests the site is built too, uploaded as the `pkgdown-site`
+  artifact, and `CDCgov/cfa-actions/post-artifact` posts a download link as a
+  PR comment, so a preview can be reviewed before merging. This job also
+  installs the Quarto CLI, which pkgdown needs to render the vignette into
+  the articles section.
 - `test-coverage.yaml`: runs covr and uploads to Codecov. Requires the
   `CODECOV_TOKEN` repository secret.
 
