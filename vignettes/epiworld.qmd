@@ -99,6 +99,23 @@ commits[ai == TRUE][which.min(date), .(
 )]
 ```
 
+Note that this commit's *author* is a human. It was flagged because the
+message carries an attribution trailer left by a squash-merged pull request:
+
+```{r}
+#| label: first-ai-trailer
+commits[ai == TRUE][which.min(date), message] |>
+  strsplit("\n") |>
+  unlist() |>
+  grep(pattern = "Co-authored-by", value = TRUE) |>
+  unique()
+```
+
+This is the main reason `ai_classify()` looks at commit messages and not just
+at author identities: when a PR written with an agent is squash-merged, the
+resulting commit is attributed to whoever merged it, and the trailer is the
+only trace of AI involvement left in the commit history.
+
 ## Visualizing the timeline
 
 `plot_timeline()` shows monthly activity. Since the data went through
@@ -145,11 +162,35 @@ And within the AI period, how much of the work is AI-involved?
 
 ```{r}
 #| label: ai-share
-commits[period == "2. Since AI", .(
+share <- commits[period == "2. Since AI", .(
   commits     = .N,
   lines_added = sum(additions, na.rm = TRUE)
 ), by = ai]
+
+share
 ```
+
+```{r}
+#| label: share-values
+#| include: false
+pc_commits <- round(100 * share[ai == TRUE, commits] / sum(share$commits))
+pc_lines   <- round(100 * share[ai == TRUE, lines_added] / sum(share$lines_added))
+rate_before <- stats[period == "1. Before AI", commits_month]
+rate_since  <- stats[period == "2. Since AI", commits_month]
+```
+
+Two things stand out. First, AI involvement is substantial once it starts:
+`r pc_commits`% of commits and `r pc_lines`% of added lines in the AI period
+are AI-involved. Second--and this is why the raw counts deserve care--overall
+activity did **not** accelerate: the project went from `r rate_before` to
+`r rate_since` commits per month.
+
+That drop is a good reminder that this is observational data, not an
+experiment. epiworld is a mature library, and the AI period coincides with a
+phase of consolidation rather than initial development; the same comparison
+on a young project would likely look very different. What the data supports
+is a statement about *composition* (how much of the work AI touches), not
+about causation (whether AI made the project faster).
 
 ## Human requests to AI: the conversation layer
 

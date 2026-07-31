@@ -30,6 +30,17 @@ software projects using the GitHub REST API.
   Network-dependent tests must be wrapped in
   `if (at_home() && nzchar(gh_token())) { ... }` so CRAN/CI never need a
   token.
+- **Test parsing offline, not over the network.** Each retrieval function is
+  split in two: the part that calls the API, and an internal
+  `as_*_dt()` parser that turns the parsed JSON into a `data.table`
+  (`as_commits_dt()`, `as_commit_files_dt()`, `as_issues_dt()`,
+  `as_comments_dt()`, `as_traffic_dt()`, `as_downloads_dt()`,
+  `as_languages_dt()`). The parsers are tested in
+  `inst/tinytest/test_parsers.R` against real API responses stored in
+  `inst/tinytest/fixtures/*.json`, trimmed to the fields the parsers read.
+  When you add a retrieval function, follow the same split and add a fixture;
+  when GitHub changes a payload, refresh the fixture. This is what keeps
+  coverage meaningful without a token.
 - **Documentation:** roxygen2 with markdown (`Roxygen: list(markdown = TRUE)`).
   Regenerate with `Rscript -e 'roxygen2::roxygenize()'`. Never edit `man/` or
   `NAMESPACE` by hand.
@@ -68,7 +79,10 @@ Rscript data-raw/epiworld.R
 
 - `R-CMD-check.yaml`: runs `R CMD check` on Linux (release + devel), macOS,
   and Windows. Quarto CLI is installed on all runners (needed for the
-  vignette).
+  vignette). It also installs the package itself (`local::.`): quarto renders
+  the vignette in a **separate R process**, which on Windows cannot see the
+  temporary check library, so without this `library(aitracking)` fails there
+  while Linux and macOS pass. Don't remove it.
 - `pkgdown.yaml`: builds the site and deploys it to the `gh-pages` branch →
   <https://gvegayon.github.io/aitracking/>.
 - `test-coverage.yaml`: runs covr and uploads to Codecov. Requires the
