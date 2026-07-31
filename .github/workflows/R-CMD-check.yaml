@@ -43,7 +43,10 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          # `local::.` installs the package itself, which the Quarto vignette
+          # needs: quarto renders in a separate R process that does not see
+          # the temporary check library on Windows.
+          extra-packages: any::rcmdcheck, local::.
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2

@@ -24,7 +24,11 @@ gh_languages <- function(repo, token = gh_token()) {
   if (length(repo) > 1L)
     return(data.table::rbindlist(lapply(repo, gh_languages, token = token)))
 
-  ans <- gh_api(sprintf("/repos/%s/languages", repo), token = token)
+  as_languages_dt(gh_api(sprintf("/repos/%s/languages", repo), token = token), repo)
+}
+
+# Parsed languages response -> data.table
+as_languages_dt <- function(ans, repo) {
 
   out <- data.table::data.table(
     repo     = rep(repo, length(ans)),

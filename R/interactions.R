@@ -66,7 +66,19 @@ gh_interactions <- function(
     token = token, max_pages = max_pages
   )
 
-  dt_issues <- data.table::data.table(
+  out <- rbind(
+    as_issues_dt(issues, repo),
+    as_comments_dt(icomments, repo, "issue_comment", "issue_url"),
+    as_comments_dt(rcomments, repo, "review_comment", "pull_request_url")
+  )
+
+  data.table::setorder(out, repo, created_at)
+  out[]
+}
+
+# Parsed issue/PR records -> data.table
+as_issues_dt <- function(issues, repo) {
+  data.table::data.table(
     repo       = rep(repo, length(issues)),
     type       = vapply(
       issues,
@@ -81,8 +93,12 @@ gh_interactions <- function(
     title      = vapply(issues, function(x) chr1(x$title), character(1L)),
     body       = vapply(issues, function(x) chr1(x$body), character(1L))
   )
+}
 
-  dt_comments <- function(items, type, url_field) data.table::data.table(
+# Parsed comment records -> data.table. `url_field` names the field holding
+# the parent issue/PR URL, whose trailing number identifies the thread.
+as_comments_dt <- function(items, repo, type, url_field) {
+  data.table::data.table(
     repo       = rep(repo, length(items)),
     type       = rep(type, length(items)),
     number     = vapply(
@@ -95,13 +111,4 @@ gh_interactions <- function(
     title      = rep(NA_character_, length(items)),
     body       = vapply(items, function(x) chr1(x$body), character(1L))
   )
-
-  out <- rbind(
-    dt_issues,
-    dt_comments(icomments, "issue_comment", "issue_url"),
-    dt_comments(rcomments, "review_comment", "pull_request_url")
-  )
-
-  data.table::setorder(out, repo, created_at)
-  out[]
 }

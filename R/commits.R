@@ -59,6 +59,13 @@ gh_commits <- function(
     token = token, max_pages = max_pages
   )
 
+  as_commits_dt(ans, repo)
+}
+
+# Parsed commit records -> data.table (kept separate so it can be tested
+# offline against the fixtures in inst/tinytest/fixtures)
+as_commits_dt <- function(ans, repo) {
+
   out <- data.table::data.table(
     repo         = rep(repo, length(ans)),
     sha          = vapply(ans, function(x) chr1(x$sha), character(1L)),
@@ -145,16 +152,8 @@ gh_commit_lines <- function(
     additions[i] <- int1(ans$stats$additions)
     deletions[i] <- int1(ans$stats$deletions)
 
-    if (files && length(ans$files)) {
-      fdetail[[i]] <- data.table::data.table(
-        repo      = x$repo[i],
-        sha       = x$sha[i],
-        file      = vapply(ans$files, function(f) chr1(f$filename), character(1L)),
-        status    = vapply(ans$files, function(f) chr1(f$status), character(1L)),
-        additions = vapply(ans$files, function(f) int1(f$additions), integer(1L)),
-        deletions = vapply(ans$files, function(f) int1(f$deletions), integer(1L))
-      )
-    }
+    if (files)
+      fdetail[[i]] <- as_commit_files_dt(ans, x$repo[i], x$sha[i])
 
     if (!is.null(pb))
       setTxtProgressBar(pb, i)
@@ -179,4 +178,20 @@ gh_commit_lines <- function(
   data.table::set(out, j = "additions", value = additions)
   data.table::set(out, j = "deletions", value = deletions)
   out[]
+}
+
+# File-level detail of a single parsed commit response -> data.table
+as_commit_files_dt <- function(ans, repo, sha) {
+
+  if (!length(ans$files))
+    return(NULL)
+
+  data.table::data.table(
+    repo      = repo,
+    sha       = sha,
+    file      = vapply(ans$files, function(f) chr1(f$filename), character(1L)),
+    status    = vapply(ans$files, function(f) chr1(f$status), character(1L)),
+    additions = vapply(ans$files, function(f) int1(f$additions), integer(1L)),
+    deletions = vapply(ans$files, function(f) int1(f$deletions), integer(1L))
+  )
 }

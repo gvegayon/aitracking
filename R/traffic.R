@@ -40,11 +40,15 @@ gh_traffic <- function(
       repo, gh_traffic, metric = metric, per = per, token = token
     )))
 
-  ans     <- gh_api(
+  ans <- gh_api(
     sprintf("/repos/%s/traffic/%s", repo, metric), per = per, token = token
     )
-  entries <- ans[[metric]]
 
+  as_traffic_dt(ans[[metric]], repo)
+}
+
+# Parsed traffic entries -> data.table
+as_traffic_dt <- function(entries, repo) {
   data.table::data.table(
     repo    = rep(repo, length(entries)),
     date    = parse_gh_time(
@@ -83,9 +87,16 @@ gh_downloads <- function(repo, token = gh_token(), max_pages = Inf) {
       repo, gh_downloads, token = token, max_pages = max_pages
     )))
 
-  releases <- gh_api(
-    sprintf("/repos/%s/releases", repo), token = token, max_pages = max_pages
-    )
+  as_downloads_dt(
+    gh_api(
+      sprintf("/repos/%s/releases", repo), token = token, max_pages = max_pages
+      ),
+    repo
+  )
+}
+
+# Parsed releases -> data.table of assets and their download counts
+as_downloads_dt <- function(releases, repo) {
 
   out <- lapply(releases, function(r) {
 
