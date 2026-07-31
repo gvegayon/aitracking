@@ -23,6 +23,7 @@ Imports:
     utils
 Suggests:
     gitcreds,
+    knitr,
     quarto,
     tinytest
 VignetteBuilder: quarto

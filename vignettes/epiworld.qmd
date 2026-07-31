@@ -60,7 +60,8 @@ commits      <- epiworld_commits
 interactions <- epiworld_interactions
 
 commits[, .(sha = substr(sha, 1, 7), author, date, additions, deletions)] |>
-  head()
+  head() |>
+  knitr::kable()
 ```
 
 ## When did AI become involved?
@@ -79,7 +80,7 @@ ai_only <- ai_patterns()[names(ai_patterns()) != "bot"]
 commits <- ai_classify(commits, patterns = ai_only)
 
 # How many commits involved AI, and which agents?
-commits[, .N, by = .(ai, ai_agent)]
+commits[, .N, by = .(ai, ai_agent)] |> knitr::kable()
 ```
 
 ```{r}
@@ -96,7 +97,7 @@ So the first AI-involved commit happened on
 commits[ai == TRUE][which.min(date), .(
   sha = substr(sha, 1, 7), author, date,
   message = substr(message, 1, 60), ai_agent
-)]
+)] |> knitr::kable()
 ```
 
 Note that this commit's *author* is a human. It was flagged because the
@@ -126,22 +127,48 @@ only trace of AI involvement left in the commit history.
 plot_timeline(commits, by = "commits")
 ```
 
-The same timeline in terms of lines added and deleted:
+The same timeline in terms of lines added and deleted needs one adjustment
+first. epiworld's recorded git history begins with the import of the
+existing codebase, and that import alone lands in a single calendar month:
+
+```{r}
+#| label: first-month
+first_month       <- format(min(commits$date), "%Y-%m")
+first_month_added <- commits[format(date, "%Y-%m") == first_month, sum(additions, na.rm = TRUE)]
+rest_added        <- commits[format(date, "%Y-%m") != first_month, sum(additions, na.rm = TRUE)]
+
+commits_since_import <- commits[format(date, "%Y-%m") != first_month]
+```
+
+That first month (`r first_month`) alone accounts for
+`r format(first_month_added, big.mark = ",")` lines added --
+`r round(first_month_added / rest_added, 1)` times as many as every month
+since, *combined* (`r format(rest_added, big.mark = ",")`). Leaving it in
+would compress the rest of the plot to a flat line near zero, so for this
+view only, we drop that first calendar month and start from the second month
+of recorded history onward. (Commit *counts* are not skewed the same way --
+that first month had 63 commits, well within the normal range -- so the
+commit-based timeline above uses the full history unmodified.)
 
 ```{r}
 #| label: timeline-lines
-plot_timeline(commits, by = "lines")
+plot_timeline(commits_since_import, by = "lines")
 ```
 
 ## How did activity change since AI got involved?
 
-A simple before/after comparison of monthly activity:
+A simple before/after comparison of monthly activity. The initial-import
+month identified above lands entirely in the "before AI" period, and its
+million-plus added lines would swamp the comparison, so we reuse
+`commits_since_import` here as well:
 
 ```{r}
 #| label: before-after
-commits[, period := fifelse(date < first_ai, "1. Before AI", "2. Since AI")]
+commits_since_import[
+  , period := fifelse(date < first_ai, "1. Before AI", "2. Since AI")
+]
 
-stats <- commits[, .(
+stats <- commits_since_import[, .(
   months        = uniqueN(format(date, "%Y-%m")),
   commits       = .N,
   authors       = uniqueN(author_name),
@@ -155,19 +182,19 @@ stats[, `:=`(
   deleted_month = round(lines_deleted / months, 1)
 )]
 
-stats
+stats |> knitr::kable()
 ```
 
 And within the AI period, how much of the work is AI-involved?
 
 ```{r}
 #| label: ai-share
-share <- commits[period == "2. Since AI", .(
+share <- commits_since_import[period == "2. Since AI", .(
   commits     = .N,
   lines_added = sum(additions, na.rm = TRUE)
 ), by = ai]
 
-share
+share |> knitr::kable()
 ```
 
 ```{r}
@@ -206,20 +233,29 @@ agent--a proxy for humans prompting AI):
 interactions <- ai_classify(interactions, patterns = ai_only)
 
 # Overall activity by type
-interactions[, .N, by = type]
+interactions[, .N, by = type] |> knitr::kable()
+```
 
+```{r}
+#| label: interactions-ai
 # Comments/issues authored by AI agents
-interactions[ai == TRUE, .N, by = ai_agent]
+interactions[ai == TRUE, .N, by = ai_agent] |> knitr::kable()
+```
 
+```{r}
+#| label: interactions-mentions
 # Humans prompting/addressing AI agents
-interactions[ai == FALSE & !is.na(ai_mention), .N, by = ai_mention]
+interactions[ai == FALSE & !is.na(ai_mention), .N, by = ai_mention] |>
+  knitr::kable()
 ```
 
 Activity by user (top 10), distinguishing AI agents from humans:
 
 ```{r}
 #| label: by-user
-interactions[, .N, by = .(user, ai)][order(-N)] |> head(10)
+interactions[, .N, by = .(user, ai)][order(-N)] |>
+  head(10) |>
+  knitr::kable()
 ```
 
 ## Delegation: what was handed to an agent
@@ -233,7 +269,8 @@ pair and flags the AI ones:
 #| label: assignments
 data(epiworld_assignments)
 
-epiworld_assignments[assigned_ai == TRUE, .N, by = .(type, assignee, assignee_type)]
+epiworld_assignments[assigned_ai == TRUE, .N, by = .(type, assignee, assignee_type)] |>
+  knitr::kable()
 ```
 
 ```{r}
@@ -242,7 +279,7 @@ epiworld_assignments[, .(
   rows        = .N,
   to_ai       = sum(assigned_ai),
   share_to_ai = round(mean(assigned_ai), 3)
-)]
+)] |> knitr::kable()
 ```
 
 Note the `assignee_type`: GitHub reports the coding agent as the login
@@ -264,7 +301,7 @@ data(epiworld_pulls)
 
 pulls <- ai_classify(epiworld_pulls, patterns = ai_only)
 
-pulls[, .N, by = .(ai, ai_suspected, ai_evidence, ai_agent)]
+pulls[, .N, by = .(ai, ai_suspected, ai_evidence, ai_agent)] |> knitr::kable()
 ```
 
 The two tiers are doing real work here. Every `copilot/*` pull request was
@@ -273,7 +310,8 @@ The `codex/*` ones look similar but were opened by a human:
 
 ```{r}
 #| label: suspected
-pulls[ai_suspected == TRUE, .(number, user, branch, ai_agent, ai_evidence)]
+pulls[ai_suspected == TRUE, .(number, user, branch, ai_agent, ai_evidence)] |>
+  knitr::kable()
 ```
 
 That is exactly why a branch prefix is recorded as `ai_suspected` rather than
@@ -292,7 +330,7 @@ pulls[, .(
   pull_requests = .N,
   confirmed     = sum(ai),
   upper_bound   = sum(ai | ai_suspected)
-)]
+)] |> knitr::kable()
 ```
 
 ## Evolution of the project's size
@@ -328,6 +366,12 @@ gh_languages("UofUEpiBio/epiworld")
 
 ## Caveats
 
+- The "lines" timeline and the before/after comparison above exclude the
+  calendar month in which epiworld's recorded history begins, since it
+  contains the initial code import (over a million lines in a single month)
+  and would otherwise dominate every other month combined. This exclusion is
+  scoped to those two views; the cumulative size plot below is a historical
+  record and rightly includes that initial jump.
 - `ai_classify()` is deliberately parsimonious: it only catches AI
   involvement that is *visible* (bot identities, attribution trailers,
   mentions). Undisclosed AI assistance--e.g., code written with editor
