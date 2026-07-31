@@ -17,7 +17,16 @@ reference:
   - gh_traffic
   - gh_downloads
   - gh_interactions
+  - gh_assignments
+  - gh_pulls
   - gh_languages
+- title: Copilot usage
+  desc: >
+    Organization-level Copilot usage, i.e., how much the tool is used rather
+    than what it left behind in the repository.
+  contents:
+  - gh_copilot_metrics
+  - gh_copilot_seats
 - title: Analysis and visualization
   desc: Classify AI involvement and summarize/plot project activity.
   contents:
@@ -29,3 +38,5 @@ reference:
   contents:
   - epiworld_commits
   - epiworld_interactions
+  - epiworld_assignments
+  - epiworld_pulls

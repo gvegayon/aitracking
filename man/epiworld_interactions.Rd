@@ -23,7 +23,9 @@ taken on 2026-07-31 with \code{gh_interactions("UofUEpiBio/epiworld")} (see
 }
 \seealso{
 Other data:
-\code{\link{epiworld_commits}}
+\code{\link{epiworld_assignments}},
+\code{\link{epiworld_commits}},
+\code{\link{epiworld_pulls}}
 }
 \concept{data}
 \keyword{datasets}

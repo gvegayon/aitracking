@@ -222,6 +222,79 @@ Activity by user (top 10), distinguishing AI agents from humans:
 interactions[, .N, by = .(user, ai)][order(-N)] |> head(10)
 ```
 
+## Delegation: what was handed to an agent
+
+Commits and comments tell you where AI *ended up*. Assignments tell you where
+it was *asked to go*: assigning an issue to Copilot is how GitHub's coding
+agent is given a task. `gh_assignments()` returns one row per issue/assignee
+pair and flags the AI ones:
+
+```{r}
+#| label: assignments
+data(epiworld_assignments)
+
+epiworld_assignments[assigned_ai == TRUE, .N, by = .(type, assignee, assignee_type)]
+```
+
+```{r}
+#| label: assignment-share
+epiworld_assignments[, .(
+  rows        = .N,
+  to_ai       = sum(assigned_ai),
+  share_to_ai = round(mean(assigned_ai), 3)
+)]
+```
+
+Note the `assignee_type`: GitHub reports the coding agent as the login
+`Copilot` of type `Bot`, but *without* the usual `[bot]` suffix. Matching on
+the suffix alone would miss it entirely -- and matching on `type == "Bot"`
+alone would miss agents such as `cursoragent` and `openhands-agent`, which
+are plain `User` accounts. This is why detection here is pattern-based.
+
+## Confirmed vs. suspected: the branch-prefix signal
+
+Coding agents push to prefixed branches, and that prefix is often the
+longest-lived trace of AI involvement: it survives squash-merges and shows up
+even where no bot account and no commit trailer do. `gh_pulls()` returns the
+head branch, and `ai_classify()` reads it:
+
+```{r}
+#| label: pulls
+data(epiworld_pulls)
+
+pulls <- ai_classify(epiworld_pulls, patterns = ai_only)
+
+pulls[, .N, by = .(ai, ai_suspected, ai_evidence, ai_agent)]
+```
+
+The two tiers are doing real work here. Every `copilot/*` pull request was
+opened by the `Copilot` bot account, so it is **confirmed** via `identity`.
+The `codex/*` ones look similar but were opened by a human:
+
+```{r}
+#| label: suspected
+pulls[ai_suspected == TRUE, .(number, user, branch, ai_agent, ai_evidence)]
+```
+
+That is exactly why a branch prefix is recorded as `ai_suspected` rather than
+folded into `ai`. Agents that cannot open pull requests themselves leave this
+pattern: a developer runs the agent locally, pushes the branch it produced,
+and opens the PR under their own account. The prefix says AI was probably
+involved; it does not say who wrote which line, and in principle a human
+could name a branch `copilot/...` with no agent involved at all.
+
+Read `ai` as a lower bound on AI involvement and `ai | ai_suspected` as an
+upper bound:
+
+```{r}
+#| label: bounds
+pulls[, .(
+  pull_requests = .N,
+  confirmed     = sum(ai),
+  upper_bound   = sum(ai | ai_suspected)
+)]
+```
+
 ## Evolution of the project's size
 
 `loc_evolution()` accumulates net lines changed (additions minus deletions)

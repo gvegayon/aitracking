@@ -58,13 +58,31 @@ plot_timeline <- function(
 
     if ("ai" %in% names(x)) {
 
+      # Suspected involvement (branch-prefix evidence only) gets its own
+      # band, so the confirmed count is never inflated by it
+      susp <- if ("ai_suspected" %in% names(x))
+        as.logical(x[["ai_suspected"]])
+      else
+        rep(FALSE, nrow(x))
+
+      show_susp <- any(susp, na.rm = TRUE)
+
       m <- rbind(
-        human = tapply(!x[["ai"]], f, sum, default = 0L),
+        human = tapply(!x[["ai"]] & !susp, f, sum, default = 0L),
+        susp  = tapply(susp, f, sum, default = 0L),
         ai    = tapply(x[["ai"]], f, sum, default = 0L)
       )
 
+      keys <- c("Human", "AI (suspected)", "AI (confirmed)")
+
       if (is.null(col))
-        col <- c("gray70", "tomato")
+        col <- c("gray70", "goldenrod", "tomato")
+
+      if (!show_susp) {
+        m    <- m[c("human", "ai"), , drop = FALSE]
+        keys <- keys[c(1L, 3L)]
+        col  <- col[c(1L, 3L)]
+      }
 
       barplot(
         m, col = col, border = NA, las = las, names.arg = labs,
@@ -72,10 +90,7 @@ plot_timeline <- function(
       )
 
       if (!is.null(legend_pos))
-        legend(
-          legend_pos, fill = col, legend = c("Human", "AI-involved"),
-          bty = "n"
-        )
+        legend(legend_pos, fill = col, legend = keys, bty = "n")
 
     } else {
 

@@ -25,6 +25,21 @@ expect_equal(out$ai, c(FALSE, TRUE, TRUE, FALSE, FALSE))
 expect_equal(out$ai_agent, c(NA, "copilot", "claude", NA, NA))
 expect_equal(out$ai_mention, c(NA, NA, NA, "claude", NA))
 
+# Evidence is recorded, and nothing here is merely "suspected"
+expect_equal(out$ai_evidence, c(NA, "identity", "trailer", NA, NA))
+expect_true(all(!out$ai_suspected))
+
+# "Assisted-by:" is recognized alongside "Co-authored-by:" and
+# "Generated with", since projects are adopting it to mark AI assistance
+# without implying co-authorship
+trailers <- data.frame(message = c(
+  "Fix\n\nAssisted-by: Claude <noreply@anthropic.com>",
+  "Fix\n\nGenerated with Copilot",
+  "Fix\n\nreviewed-by: a human"
+))
+expect_equal(ai_classify(trailers)$ai, c(TRUE, TRUE, FALSE))
+expect_equal(ai_classify(trailers)$ai_evidence[1:2], c("trailer", "trailer"))
+
 # The input must not be modified in place
 expect_false("ai" %in% names(commits))
 

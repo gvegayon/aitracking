@@ -63,21 +63,70 @@ gh_headers <- function(token) {
   headers
 }
 
+# Turns a failed request into an actionable message. base R connections do
+# not expose the response body, so the HTTP status (which `url()` reports as
+# a warning) is all we have to work with; map it to the usual causes.
+gh_error_message <- function(url, status, token) {
+
+  code <- if (is.na(status)) NA_character_ else sub("^([0-9]+).*", "\\1", status)
+
+  hint <- switch(
+    code %||% "",
+    "401" = paste(
+      "The token was rejected. It may be expired or malformed;",
+      "see ?gh_token for where tokens are looked up."
+    ),
+    "403" = paste(
+      "Access denied. Common causes: the rate limit is exhausted (60",
+      "requests/hour without a token, 5,000 with one), the token lacks the",
+      "required scope, or the endpoint is gated behind an organization",
+      "policy (this is what Copilot metrics endpoints return when the",
+      "'Copilot usage metrics' policy is off)."
+    ),
+    "404" = paste(
+      "Not found. Either the resource does not exist, or the token cannot",
+      "see it (private repositories need a token with 'repo' scope)."
+    ),
+    "422" = "The request was rejected as invalid; check the parameters.",
+    NULL
+  )
+
+  paste0(
+    "GitHub API request failed",
+    if (!is.na(status)) paste0(" [HTTP ", status, "]") else "",
+    ":\n  ", url,
+    if (!is.null(hint)) paste0("\n  ", hint) else "",
+    if (!nzchar(token))
+      "\n  No token was found, so the request went out unauthenticated (see ?gh_token)."
+    else
+      ""
+  )
+}
+
 # Single GET request; returns the parsed JSON as a list
 gh_get <- function(url, token = gh_token()) {
 
   con <- base::url(url, headers = gh_headers(token))
   on.exit(try(close(con), silent = TRUE), add = TRUE)
 
-  txt <- tryCatch(
-    readLines(con, warn = FALSE),
-    error = function(e) stop_(
-      "GitHub API request failed [", url, "]: ", conditionMessage(e),
-      if (!nzchar(token))
-        "\nNote: no token was found, so the request went out unauthenticated (see ?gh_token)."
-      else
-        ""
-    )
+  # `url()` reports the HTTP status in a warning and then throws a generic
+  # "cannot open the connection" error; catch the warning to keep the status.
+  status <- NA_character_
+
+  txt <- withCallingHandlers(
+    tryCatch(
+      readLines(con, warn = FALSE),
+      error = function(e) stop_(gh_error_message(url, status, token))
+    ),
+    warning = function(w) {
+      m <- regmatches(
+        conditionMessage(w),
+        regexpr("HTTP status was '[^']+'", conditionMessage(w))
+      )
+      if (length(m))
+        status <<- sub("HTTP status was '([^']+)'", "\\1", m)
+      invokeRestart("muffleWarning")
+    }
   )
 
   jsonlite::fromJSON(paste(txt, collapse = "\n"), simplifyVector = FALSE)

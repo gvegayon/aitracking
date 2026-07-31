@@ -26,7 +26,9 @@ counts. Snapshot taken on 2026-07-31 with
 }
 \seealso{
 Other data:
-\code{\link{epiworld_interactions}}
+\code{\link{epiworld_assignments}},
+\code{\link{epiworld_interactions}},
+\code{\link{epiworld_pulls}}
 }
 \concept{data}
 \keyword{datasets}

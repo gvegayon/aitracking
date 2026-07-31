@@ -30,3 +30,39 @@
 #' @source GitHub REST API, <https://github.com/UofUEpiBio/epiworld>.
 #' @family data
 "epiworld_interactions"
+
+#' Issue and pull request assignments of UofUEpiBio/epiworld
+#'
+#' Issues and pull requests of the
+#' [epiworld](https://github.com/UofUEpiBio/epiworld) repository together with
+#' the accounts they are assigned to, including the ones delegated to the
+#' Copilot coding agent. Snapshot taken on 2026-07-31 with
+#' `gh_assignments("UofUEpiBio/epiworld")` (see `data-raw/epiworld.R` in the
+#' package sources).
+#'
+#' @format A `data.table` with one row per issue/assignee pair and columns
+#' `repo`, `type`, `number`, `title`, `user`, `assignee`, `assignee_type`,
+#' `assigned_ai`, `assigned_agent`, `state`, `created_at`, and `closed_at`.
+#' See [gh_assignments()] for details.
+#'
+#' @source GitHub REST API, <https://github.com/UofUEpiBio/epiworld>.
+#' @family data
+"epiworld_assignments"
+
+#' Pull requests of UofUEpiBio/epiworld
+#'
+#' Pull requests of the
+#' [epiworld](https://github.com/UofUEpiBio/epiworld) repository, including
+#' the head branch name, which carries the agent branch prefixes
+#' (`copilot/`, `codex/`) used by [ai_classify()] as suspected-involvement
+#' evidence. Snapshot taken on 2026-07-31 with
+#' `gh_pulls("UofUEpiBio/epiworld")` (see `data-raw/epiworld.R` in the package
+#' sources).
+#'
+#' @format A `data.table` with one row per pull request and columns `repo`,
+#' `number`, `title`, `user`, `branch`, `base`, `state`, `draft`,
+#' `created_at`, `merged_at`, and `closed_at`. See [gh_pulls()] for details.
+#'
+#' @source GitHub REST API, <https://github.com/UofUEpiBio/epiworld>.
+#' @family data
+"epiworld_pulls"

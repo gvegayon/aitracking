@@ -8,5 +8,6 @@ NULL
 
 utils::globalVariables(c(
   ".", "ai", "ai_agent", "ai_mention", "additions", "deletions", "delta",
-  "loc", "language", "repo", "sha", "bytes", "share", "i.date", "created_at"
+  "loc", "language", "repo", "sha", "bytes", "share", "i.date", "created_at",
+  "assignee", "assigned_ai", "ai_suspected"
 ))

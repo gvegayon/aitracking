@@ -4,7 +4,13 @@
 \alias{ai_classify}
 \title{Classify AI involvement in commits and interactions}
 \usage{
-ai_classify(x, patterns = ai_patterns(), id_cols = NULL, text_cols = NULL)
+ai_classify(
+  x,
+  patterns = ai_patterns(),
+  id_cols = NULL,
+  text_cols = NULL,
+  branch_cols = NULL
+)
 }
 \arguments{
 \item{x}{A \code{data.frame}/\code{data.table}, typically the output of
@@ -13,17 +19,24 @@ ai_classify(x, patterns = ai_patterns(), id_cols = NULL, text_cols = NULL)
 \item{patterns}{Named character vector of case-insensitive regular
 expressions identifying AI agents. See \code{\link[=ai_patterns]{ai_patterns()}}.}
 
-\item{id_cols, text_cols}{Character vectors with the names of the identity
-and free-text columns to scan. By default, the intersection of
-\code{c("author", "author_name", "author_email", "committer", "user")} and
-\code{c("message", "title", "body")} with the columns of \code{x}.}
+\item{id_cols, text_cols, branch_cols}{Character vectors with the names of
+the identity, free-text, and branch-name columns to scan. By default, the
+intersection of the columns of \code{x} with, respectively,
+\code{c("author", "author_name", "author_email", "committer", "user", "assignee")}, \code{c("message", "title", "body")}, and \code{c("branch")}.}
 }
 \value{
 A copy of \code{x} as a \code{data.table} with new columns:
 \itemize{
-\item \code{ai}: logical, \code{TRUE} when an AI agent authored or co-authored the row.
-\item \code{ai_agent}: label of the first matching pattern (\code{NA} when \code{ai} is
-\code{FALSE}).
+\item \code{ai}: logical, \code{TRUE} on \strong{confirmed} involvement, i.e., an AI account
+authored/committed/was assigned the row (\code{identity}), or the text carries
+an attribution trailer naming an agent (\code{trailer}).
+\item \code{ai_suspected}: logical, \code{TRUE} on \strong{suspected} involvement, i.e., the
+only evidence is an agent branch prefix (see Details). Confirmed and
+suspected are mutually exclusive: a row that is \code{ai} is never
+\code{ai_suspected}.
+\item \code{ai_agent}: label of the matching agent (\code{NA} when neither flag is set).
+\item \code{ai_evidence}: what triggered the flag---\code{"identity"}, \code{"trailer"}, or
+\code{"branch"}---so that a classification can be audited or a tier dropped.
 \item \code{ai_mention}: (only when text columns are present) label of the AI agent
 mentioned/addressed in the text (e.g., \code{"@copilot fix this"}), \code{NA}
 otherwise. Rows with \code{!ai & !is.na(ai_mention)} are a proxy for humans
@@ -31,14 +44,33 @@ prompting AI agents.
 }
 }
 \description{
-Tags each row of a commit history (\code{\link[=gh_commits]{gh_commits()}}) or interaction table
-(\code{\link[=gh_interactions]{gh_interactions()}}) according to whether an AI coding agent was involved.
-The classification is rule-based and parsimonious: a row is flagged when
-(a) an identity column (author, committer, user, email) matches an AI agent
-pattern, or (b) a text column (message, title, body) contains an
-attribution trailer such as \verb{Co-authored-by: ... <agent>} or
-\verb{Generated with <agent>}.
+Tags each row of a commit history (\code{\link[=gh_commits]{gh_commits()}}), interaction table
+(\code{\link[=gh_interactions]{gh_interactions()}}), or pull request table (\code{\link[=gh_pulls]{gh_pulls()}}) according to
+whether an AI coding agent was involved. The classification is rule-based,
+parsimonious, and reports evidence in two tiers: \strong{confirmed} (\code{ai}) and
+\strong{suspected} (\code{ai_suspected}).
 }
+\section{Why branch prefixes are only "suspected"}{
+
+Coding agents push to prefixed branches (\code{copilot/fix-thing},
+\code{codex/add-tests}), and that prefix often outlives every other trace: it
+survives squash-merges, and it is present even when no bot account and no
+commit trailer appear anywhere. But it is weaker evidence than an identity
+or a trailer, for a specific reason: \strong{the branch may have been created by
+a human on the agent's behalf.} Several agents cannot open pull requests
+themselves, so a developer runs the agent locally, pushes the branch it
+produced, and opens the PR under their own account. The prefix then tells
+you AI was probably involved, but not who wrote which line---so
+\pkg{aitracking} reports it as \code{ai_suspected} rather than folding it into
+\code{ai}.
+
+This is not hypothetical: in the \code{UofUEpiBio/epiworld} history, every
+\verb{copilot/*} pull request was opened by the \code{Copilot} bot account, while
+the \verb{codex/*} ones were opened by a human---same kind of prefix, two
+different attribution stories. Treat \code{ai} as a lower bound, \code{ai | ai_suspected} as an upper bound, and report both when the difference
+matters.
+}
+
 \examples{
 commits <- data.frame(
   author  = c("gvegayon", "copilot[bot]", "jdoe"),
@@ -49,6 +81,14 @@ commits <- data.frame(
   )
 )
 ai_classify(commits)
+
+# Branch prefixes are reported as suspected, not confirmed: here a human
+# opened the PR off a branch an agent produced.
+pulls <- data.frame(
+  user   = c("gvegayon", "Copilot"),
+  branch = c("codex/switch-docs", "copilot/fix-bug")
+)
+ai_classify(pulls)[, c("user", "branch", "ai", "ai_suspected", "ai_evidence")]
 
 }
 \seealso{

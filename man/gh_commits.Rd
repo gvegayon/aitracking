@@ -64,10 +64,12 @@ gh_commits("UofUEpiBio/epiworld") |>
 }
 \seealso{
 Other retrieval:
+\code{\link[=gh_assignments]{gh_assignments()}},
 \code{\link[=gh_commit_lines]{gh_commit_lines()}},
 \code{\link[=gh_downloads]{gh_downloads()}},
 \code{\link[=gh_interactions]{gh_interactions()}},
 \code{\link[=gh_languages]{gh_languages()}},
+\code{\link[=gh_pulls]{gh_pulls()}},
 \code{\link[=gh_traffic]{gh_traffic()}}
 }
 \concept{retrieval}

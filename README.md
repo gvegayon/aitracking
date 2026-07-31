@@ -105,13 +105,71 @@ how commit and coding activity changed since.
 | `gh_commits()` | Commit history (author, hash, message, time) of one or more repos |
 | `gh_commit_lines()` | Lines added/deleted per commit (optionally per file) |
 | `gh_interactions()` | Issues, PRs, and comments–including human requests to AI agents |
+| `gh_assignments()` | Issues/PRs and who they are assigned to, flagging AI agents |
+| `gh_pulls()` | Pull requests, including the head branch (agent branch prefixes) |
 | `gh_traffic()` | Clone/view history (last 14 days, requires push access) |
 | `gh_downloads()` | All-time download counts of release assets |
 | `gh_languages()` | Current language composition of a repo |
 | `ai_classify()` | Tag rows where an AI agent was involved (or mentioned) |
 | `loc_evolution()` | Evolution of project size (net lines of code, by language) |
 | `plot_timeline()` | Activity timeline by commits or by lines added/deleted |
+| `gh_copilot_metrics()` / `gh_copilot_seats()` | Org-level Copilot usage (see below) |
 | `gh_api()` / `gh_token()` | Low-level API access and token discovery |
+
+## How AI involvement is detected
+
+There is no single field in the GitHub API that says “AI wrote this”, so
+`ai_classify()` combines the traces that projects and agents actually
+leave, and reports them in two tiers:
+
+**Confirmed** (`ai == TRUE`)
+
+- **Agent identities** in author, committer, assignee, or commenter
+  fields (`Copilot`, `devin-ai-integration[bot]`, `cursoragent`, …).
+  Note that GitHub’s coding agent appears as the login `Copilot` of type
+  `Bot` *without* a `[bot]` suffix, and that some agents are plain
+  `User` accounts – so neither the suffix nor the account type is
+  sufficient on its own.
+- **Attribution trailers** in commit messages and PR/issue bodies:
+  `Co-authored-by:` (what Copilot, Claude, and Cursor emit by default),
+  and the `Assisted-by:` convention some projects prefer because it
+  marks assistance without implying co-authorship.
+
+**Suspected** (`ai_suspected == TRUE`)
+
+- **Agent branch prefixes** such as `copilot/fix-thing` or
+  `codex/add-tests`. This is the longest-lived trace – it survives
+  squash-merges – but it is weaker evidence, because a human may create
+  the branch on the agent’s behalf: several agents cannot open pull
+  requests themselves, so a developer runs the agent locally, pushes its
+  branch, and opens the PR under their own account. Treat `ai` as a
+  lower bound and `ai | ai_suspected` as an upper bound.
+
+Separately, `ai_mention` flags text that *addresses* an agent
+(`@copilot fix this`), which is a proxy for how much humans are
+prompting AI.
+
+Undisclosed assistance – code written with editor completions and
+committed under a human identity with no trailer – is not detectable
+from API metadata at all. Every figure this package produces is
+therefore a lower bound.
+
+## Copilot usage metrics
+
+If you administer the organization, `gh_copilot_metrics()` wraps
+GitHub’s Copilot usage metrics API (suggestion/acceptance counts, lines
+suggested and accepted, active users, chat activity). Two caveats
+matter:
+
+- It requires **organization ownership** *and* the **“Copilot usage
+  metrics” policy enabled**; otherwise every request returns `HTTP 403`.
+- Metrics are aggregated at the **organization/enterprise level**. There
+  is no public per-repository endpoint for suggestion counts, and
+  nothing exposes tokens or hours spent. For repositories you do not
+  administer, the history-based measures above are the only option.
+
+`gh_copilot_seats()` is far more accessible (it needs only `read:org`)
+and reports per-user seat assignment and last activity.
 
 ## Related work
 

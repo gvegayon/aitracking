@@ -26,11 +26,23 @@ message("Fetching issue/PR interactions...")
 epiworld_interactions <- gh_interactions(repo)
 message("  ", nrow(epiworld_interactions), " interactions.")
 
+message("Fetching issue/PR assignments...")
+epiworld_assignments <- gh_assignments(repo)
+message("  ", nrow(epiworld_assignments), " assignment rows.")
+
+message("Fetching pull requests (for head branch names)...")
+epiworld_pulls <- gh_pulls(repo)
+message("  ", nrow(epiworld_pulls), " pull requests.")
+
 dir.create("data", showWarnings = FALSE)
 save(epiworld_commits, file = "data/epiworld_commits.rda", compress = "xz")
 save(
   epiworld_interactions, file = "data/epiworld_interactions.rda",
   compress = "xz"
 )
+save(
+  epiworld_assignments, file = "data/epiworld_assignments.rda", compress = "xz"
+)
+save(epiworld_pulls, file = "data/epiworld_pulls.rda", compress = "xz")
 
 message("Done. Files written to data/.")
