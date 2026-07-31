@@ -1,0 +1,227 @@
+---
+title: "Measuring AI involvement in a repository: the epiworld case"
+format:
+  html:
+    toc: true
+    fig-width: 9
+    fig-height: 4.5
+vignette: >
+  %\VignetteIndexEntry{Measuring AI involvement in a repository: the epiworld case}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+knitr:
+  opts_chunk:
+    collapse: true
+    comment: "#>"
+---
+
+This vignette walks through a complete analysis of AI involvement in a real
+project: [epiworld](https://github.com/UofUEpiBio/epiworld), a C++
+header-only library for agent-based epidemiological simulations developed at
+the University of Utah. We will answer three questions:
+
+1. **When** did AI coding agents become involved in the project?
+2. **How much** of the commit and coding activity involves AI?
+3. **How** did activity change after AI became involved?
+
+```{r}
+#| label: setup
+library(aitracking)
+library(data.table)
+```
+
+## Getting the data
+
+Two calls retrieve everything we need. `gh_commits()` downloads the full
+commit history, `gh_commit_lines()` adds per-commit line counts (one API call
+per commit), and `gh_interactions()` downloads the issue/PR conversation
+layer--which survives even when PRs are squash-merged:
+
+```{r}
+#| label: fetch
+#| eval: false
+commits <- gh_commits("UofUEpiBio/epiworld") |>
+  gh_commit_lines()
+
+interactions <- gh_interactions("UofUEpiBio/epiworld")
+```
+
+Both functions authenticate via `gh_token()` (an explicit token, the
+`GITHUB_PAT`/`GITHUB_TOKEN` environment variables, or the git credential
+store). So that this vignette builds offline, the package ships a snapshot of
+both datasets taken on 2026-07-31, and we use it from here on:
+
+```{r}
+#| label: load-data
+data(epiworld_commits)
+data(epiworld_interactions)
+
+commits      <- epiworld_commits
+interactions <- epiworld_interactions
+
+commits[, .(sha = substr(sha, 1, 7), author, date, additions, deletions)] |>
+  head()
+```
+
+## When did AI become involved?
+
+`ai_classify()` tags each commit using a small set of transparent rules: AI
+identities among authors/committers (e.g., `copilot[bot]`), and attribution
+trailers in the commit message (e.g., `Co-authored-by: Claude`). The default
+patterns are in `ai_patterns()`; the generic `bot` pattern also catches
+non-AI automation such as Dependabot, so we drop it here to focus on actual
+AI coding agents:
+
+```{r}
+#| label: classify
+ai_only <- ai_patterns()[names(ai_patterns()) != "bot"]
+
+commits <- ai_classify(commits, patterns = ai_only)
+
+# How many commits involved AI, and which agents?
+commits[, .N, by = .(ai, ai_agent)]
+```
+
+```{r}
+#| label: first-ai
+first_ai <- commits[ai == TRUE, min(date)]
+first_ai
+```
+
+So the first AI-involved commit happened on
+`r format(first_ai, "%B %d, %Y")`:
+
+```{r}
+#| label: first-ai-commit
+commits[ai == TRUE][which.min(date), .(
+  sha = substr(sha, 1, 7), author, date,
+  message = substr(message, 1, 60), ai_agent
+)]
+```
+
+## Visualizing the timeline
+
+`plot_timeline()` shows monthly activity. Since the data went through
+`ai_classify()`, commit bars are split into human and AI-involved:
+
+```{r}
+#| label: timeline-commits
+plot_timeline(commits, by = "commits")
+```
+
+The same timeline in terms of lines added and deleted:
+
+```{r}
+#| label: timeline-lines
+plot_timeline(commits, by = "lines")
+```
+
+## How did activity change since AI got involved?
+
+A simple before/after comparison of monthly activity:
+
+```{r}
+#| label: before-after
+commits[, period := fifelse(date < first_ai, "1. Before AI", "2. Since AI")]
+
+stats <- commits[, .(
+  months        = uniqueN(format(date, "%Y-%m")),
+  commits       = .N,
+  authors       = uniqueN(author_name),
+  lines_added   = sum(additions, na.rm = TRUE),
+  lines_deleted = sum(deletions, na.rm = TRUE)
+), by = period]
+
+stats[, `:=`(
+  commits_month = round(commits / months, 1),
+  added_month   = round(lines_added / months, 1),
+  deleted_month = round(lines_deleted / months, 1)
+)]
+
+stats
+```
+
+And within the AI period, how much of the work is AI-involved?
+
+```{r}
+#| label: ai-share
+commits[period == "2. Since AI", .(
+  commits     = .N,
+  lines_added = sum(additions, na.rm = TRUE)
+), by = ai]
+```
+
+## Human requests to AI: the conversation layer
+
+Commit histories under-count AI involvement: when a PR authored by an agent
+is squash-merged, the merge commit may carry a human identity. The
+issue/PR conversation retrieved by `gh_interactions()` preserves that
+history. `ai_classify()` adds two flags here: `ai` (the comment/issue was
+authored by an AI agent) and `ai_mention` (the text addresses or mentions an
+agent--a proxy for humans prompting AI):
+
+```{r}
+#| label: interactions
+interactions <- ai_classify(interactions, patterns = ai_only)
+
+# Overall activity by type
+interactions[, .N, by = type]
+
+# Comments/issues authored by AI agents
+interactions[ai == TRUE, .N, by = ai_agent]
+
+# Humans prompting/addressing AI agents
+interactions[ai == FALSE & !is.na(ai_mention), .N, by = ai_mention]
+```
+
+Activity by user (top 10), distinguishing AI agents from humans:
+
+```{r}
+#| label: by-user
+interactions[, .N, by = .(user, ai)][order(-N)] |> head(10)
+```
+
+## Evolution of the project's size
+
+`loc_evolution()` accumulates net lines changed (additions minus deletions)
+over time--an approximation of the project's size in lines:
+
+```{r}
+#| label: loc
+lo <- loc_evolution(commits)
+
+plot(
+  lo$date, lo$loc, type = "l", lwd = 2, col = "steelblue",
+  xlab = "Date", ylab = "Cumulative net lines",
+  main = "epiworld: project size over time"
+)
+abline(v = as.numeric(first_ai), lty = 2, col = "tomato")
+text(
+  as.numeric(first_ai), max(lo$loc) * 0.1, "first AI commit",
+  pos = 4, col = "tomato"
+)
+```
+
+For a by-language breakdown, retrieve file-level detail with
+`gh_commit_lines(commits, files = TRUE)` and pass that to `loc_evolution()`,
+or get the current snapshot with:
+
+```{r}
+#| label: languages
+#| eval: false
+gh_languages("UofUEpiBio/epiworld")
+```
+
+## Caveats
+
+- `ai_classify()` is deliberately parsimonious: it only catches AI
+  involvement that is *visible* (bot identities, attribution trailers,
+  mentions). Undisclosed AI assistance--e.g., code written with editor
+  completions and committed under a human identity--is not detectable from
+  API metadata alone, so these figures are lower bounds.
+- Net lines changed is a rough proxy for project size; it includes
+  documentation and data files unless filtered out (use the file-level
+  output of `gh_commit_lines()` to do so).
+- `gh_traffic()` (clones/views) only covers the last 14 days and requires
+  push access, so building a long download history requires periodic
+  snapshots.

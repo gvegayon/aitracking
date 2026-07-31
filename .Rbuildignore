@@ -1,0 +1,17 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.github$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^data-raw$
+^AGENTS\.md$
+^CLAUDE\.md$
+^\.claude$
+^README\.qmd$
+^README_files$
+^NEWS\.md$
+^\.gitignore$
+^\.quarto$
+^.*\.tar\.gz$
+^.*\.Rcheck$

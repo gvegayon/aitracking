@@ -1,0 +1,31 @@
+url: https://gvegayon.github.io/aitracking/
+
+template:
+  bootstrap: 5
+
+reference:
+- title: GitHub API access
+  desc: Minimal API client built on base R connections.
+  contents:
+  - gh_token
+  - gh_api
+- title: Data retrieval
+  desc: Download commit histories, traffic, interactions, and languages.
+  contents:
+  - gh_commits
+  - gh_commit_lines
+  - gh_traffic
+  - gh_downloads
+  - gh_interactions
+  - gh_languages
+- title: Analysis and visualization
+  desc: Classify AI involvement and summarize/plot project activity.
+  contents:
+  - ai_classify
+  - ai_patterns
+  - loc_evolution
+  - plot_timeline
+- title: Example data
+  contents:
+  - epiworld_commits
+  - epiworld_interactions

@@ -1,0 +1,15 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+.quarto/
+docs/
+inst/doc
+/*.tar.gz
+/*.Rcheck/
+vignettes/*.html
+vignettes/*_files/
+data-raw/fetch.log
+data-raw/*.hold
+.claude/

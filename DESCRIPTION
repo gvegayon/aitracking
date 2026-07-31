@@ -1,0 +1,34 @@
+Package: aitracking
+Type: Package
+Title: Measure the Effects of AI Coding Using the GitHub API
+Version: 0.1.0
+Authors@R: person("George", "Vega Yon", email = "g.vegayon@gmail.com",
+    role = c("aut", "cre"), comment = c(ORCID = "0000-0002-3171-0844"))
+Description: A lightweight pipeline to measure the effects of AI-assisted
+    coding on software projects using the GitHub REST API. Retrieves commit
+    histories (including lines added and deleted), issue and pull request
+    activity, download and clone statistics, and the evolution of a
+    project's size in lines of code by language. Provides a parsimonious,
+    rule-based classifier to flag commits and interactions in which AI
+    coding agents were involved, and base-graphics visualizations of
+    project activity over time. API access is implemented with base R
+    connections to keep dependencies to a minimum.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports:
+    data.table,
+    jsonlite,
+    graphics,
+    utils
+Suggests:
+    gitcreds,
+    quarto,
+    tinytest
+VignetteBuilder: quarto
+URL: https://github.com/gvegayon/aitracking,
+    https://gvegayon.github.io/aitracking/
+BugReports: https://github.com/gvegayon/aitracking/issues
+Roxygen: list(markdown = TRUE)
+LazyData: true
+Config/roxygen2/version: 8.0.0
