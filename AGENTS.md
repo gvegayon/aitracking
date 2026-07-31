@@ -26,10 +26,22 @@ coding on software projects using the GitHub REST API.
 - **Retrieval functions return `data.table`s** with a `repo` column so
   that results from multiple repositories can be stacked.
 - **[`ai_classify()`](https://gvegayon.github.io/aitracking/reference/ai_classify.md)
-  must stay parsimonious.** It is a rule-based classifier (identity
-  columns + commit-message trailers + `@`-mentions). Patterns live in
+  must stay parsimonious.** It is a rule-based classifier. Patterns live
+  in
   [`ai_patterns()`](https://gvegayon.github.io/aitracking/reference/ai_patterns.md);
-  extend the vector rather than adding complexity.
+  extend the vector rather than adding complexity. All matching goes
+  through the internal `match_agent()` helper plus one of the `.tpl_*`
+  regex templates – add a template, don’t inline a new
+  [`grepl()`](https://rdrr.io/r/base/grep.html).
+- **Keep the confirmed/suspected split.** `ai` means *confirmed*
+  involvement (an agent identity, or an attribution trailer).
+  `ai_suspected` means the only evidence is weak – currently an agent
+  branch prefix (`copilot/...`, `codex/...`), which a human may have
+  created on the agent’s behalf. Never fold a weak signal into `ai`: add
+  it as a new `ai_evidence` tag and route it through `ai_suspected`.
+  Empirically, in `UofUEpiBio/epiworld` every `copilot/*` PR was opened
+  by the Copilot bot while every `codex/*` PR was opened by a human,
+  which is exactly the distinction the split preserves.
 
 ## Toolchain
 
@@ -113,3 +125,18 @@ Rscript data-raw/epiworld.R
   directly. If you regenerate them, update the snapshot date in
   [R/data.R](https://gvegayon.github.io/aitracking/R/data.R) and re-run
   roxygen2.
+- Agent account identities are not guessable – verify them against
+  `/users/{login}` before adding a pattern. Known traps: the Copilot
+  coding agent shows as login `Copilot` (type `Bot`, **no** `[bot]`
+  suffix) in issue payloads while its underlying account is
+  `copilot-swe-agent[bot]`; and `cursoragent` and `openhands-agent` are
+  type `User`, so neither the `[bot]` suffix nor `type == "Bot"` is a
+  sufficient test.
+- Copilot usage metrics
+  ([`gh_copilot_metrics()`](https://gvegayon.github.io/aitracking/reference/gh_copilot_metrics.md))
+  are **organization-level and policy-gated**: they return `HTTP 403`
+  unless the caller owns the org and the “Copilot usage metrics” policy
+  is enabled, so they cannot be covered by tests here. The endpoint
+  returns `download_links` pointing at the actual report files, not the
+  metric values inline. There is no per-repository suggestion-count
+  endpoint and none exposing tokens or hours.

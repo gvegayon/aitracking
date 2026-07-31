@@ -275,6 +275,104 @@ interactions[, .N, by = .(user, ai)][order(-N)] |> head(10)
 #> 7:            gvegayon   TRUE     1
 ```
 
+## Delegation: what was handed to an agent
+
+Commits and comments tell you where AI *ended up*. Assignments tell you
+where it was *asked to go*: assigning an issue to Copilot is how
+GitHub’s coding agent is given a task.
+[`gh_assignments()`](https://gvegayon.github.io/aitracking/reference/gh_assignments.md)
+returns one row per issue/assignee pair and flags the AI ones:
+
+``` r
+
+data(epiworld_assignments)
+
+epiworld_assignments[assigned_ai == TRUE, .N, by = .(type, assignee, assignee_type)]
+#>            type assignee assignee_type     N
+#>          <char>   <char>        <char> <int>
+#> 1:        issue  Copilot           Bot    40
+#> 2: pull_request  Copilot           Bot    54
+```
+
+``` r
+
+epiworld_assignments[, .(
+  rows        = .N,
+  to_ai       = sum(assigned_ai),
+  share_to_ai = round(mean(assigned_ai), 3)
+)]
+#>     rows to_ai share_to_ai
+#>    <int> <int>       <num>
+#> 1:   334    94       0.281
+```
+
+Note the `assignee_type`: GitHub reports the coding agent as the login
+`Copilot` of type `Bot`, but *without* the usual `[bot]` suffix.
+Matching on the suffix alone would miss it entirely – and matching on
+`type == "Bot"` alone would miss agents such as `cursoragent` and
+`openhands-agent`, which are plain `User` accounts. This is why
+detection here is pattern-based.
+
+## Confirmed vs. suspected: the branch-prefix signal
+
+Coding agents push to prefixed branches, and that prefix is often the
+longest-lived trace of AI involvement: it survives squash-merges and
+shows up even where no bot account and no commit trailer do.
+[`gh_pulls()`](https://gvegayon.github.io/aitracking/reference/gh_pulls.md)
+returns the head branch, and
+[`ai_classify()`](https://gvegayon.github.io/aitracking/reference/ai_classify.md)
+reads it:
+
+``` r
+
+data(epiworld_pulls)
+
+pulls <- ai_classify(epiworld_pulls, patterns = ai_only)
+
+pulls[, .N, by = .(ai, ai_suspected, ai_evidence, ai_agent)]
+#>        ai ai_suspected ai_evidence ai_agent     N
+#>    <lgcl>       <lgcl>      <char>   <char> <int>
+#> 1:  FALSE        FALSE        <NA>     <NA>    98
+#> 2:   TRUE        FALSE    identity  copilot    54
+#> 3:  FALSE         TRUE      branch   openai     2
+```
+
+The two tiers are doing real work here. Every `copilot/*` pull request
+was opened by the `Copilot` bot account, so it is **confirmed** via
+`identity`. The `codex/*` ones look similar but were opened by a human:
+
+``` r
+
+pulls[ai_suspected == TRUE, .(number, user, branch, ai_agent, ai_evidence)]
+#>    number     user                              branch ai_agent ai_evidence
+#>     <int>   <char>                              <char>   <char>      <char>
+#> 1:    232 gvegayon         codex/switch-docs-to-mrdocs   openai      branch
+#> 2:    237 gvegayon codex/poisson-default-using-le-cams   openai      branch
+```
+
+That is exactly why a branch prefix is recorded as `ai_suspected` rather
+than folded into `ai`. Agents that cannot open pull requests themselves
+leave this pattern: a developer runs the agent locally, pushes the
+branch it produced, and opens the PR under their own account. The prefix
+says AI was probably involved; it does not say who wrote which line, and
+in principle a human could name a branch `copilot/...` with no agent
+involved at all.
+
+Read `ai` as a lower bound on AI involvement and `ai | ai_suspected` as
+an upper bound:
+
+``` r
+
+pulls[, .(
+  pull_requests = .N,
+  confirmed     = sum(ai),
+  upper_bound   = sum(ai | ai_suspected)
+)]
+#>    pull_requests confirmed upper_bound
+#>            <int>     <int>       <int>
+#> 1:           154        54          56
+```
+
 ## Evolution of the project’s size
 
 [`loc_evolution()`](https://gvegayon.github.io/aitracking/reference/loc_evolution.md)

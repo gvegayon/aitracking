@@ -140,6 +140,14 @@
 <td>Issues, PRs, and comments–including human requests to AI agents</td>
 </tr>
 <tr>
+<td><code><a href="reference/gh_assignments.html">gh_assignments()</a></code></td>
+<td>Issues/PRs and who they are assigned to, flagging AI agents</td>
+</tr>
+<tr>
+<td><code><a href="reference/gh_pulls.html">gh_pulls()</a></code></td>
+<td>Pull requests, including the head branch (agent branch prefixes)</td>
+</tr>
+<tr>
 <td><code><a href="reference/gh_traffic.html">gh_traffic()</a></code></td>
 <td>Clone/view history (last 14 days, requires push access)</td>
 </tr>
@@ -165,12 +173,47 @@
 </tr>
 <tr>
 <td>
+<code><a href="reference/gh_copilot_metrics.html">gh_copilot_metrics()</a></code> / <code><a href="reference/gh_copilot_seats.html">gh_copilot_seats()</a></code>
+</td>
+<td>Org-level Copilot usage (see below)</td>
+</tr>
+<tr>
+<td>
 <code><a href="reference/gh_api.html">gh_api()</a></code> / <code><a href="reference/gh_token.html">gh_token()</a></code>
 </td>
 <td>Low-level API access and token discovery</td>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="section level2">
+<h2 id="how-ai-involvement-is-detected">How AI involvement is detected<a class="anchor" aria-label="anchor" href="#how-ai-involvement-is-detected"></a>
+</h2>
+<p>There is no single field in the GitHub API that says “AI wrote this”, so <code><a href="reference/ai_classify.html">ai_classify()</a></code> combines the traces that projects and agents actually leave, and reports them in two tiers:</p>
+<p><strong>Confirmed</strong> (<code>ai == TRUE</code>)</p>
+<ul>
+<li>
+<strong>Agent identities</strong> in author, committer, assignee, or commenter fields (<code>Copilot</code>, <code>devin-ai-integration[bot]</code>, <code>cursoragent</code>, …). Note that GitHub’s coding agent appears as the login <code>Copilot</code> of type <code>Bot</code> <em>without</em> a <code>[bot]</code> suffix, and that some agents are plain <code>User</code> accounts – so neither the suffix nor the account type is sufficient on its own.</li>
+<li>
+<strong>Attribution trailers</strong> in commit messages and PR/issue bodies: <code>Co-authored-by:</code> (what Copilot, Claude, and Cursor emit by default), and the <code>Assisted-by:</code> convention some projects prefer because it marks assistance without implying co-authorship.</li>
+</ul>
+<p><strong>Suspected</strong> (<code>ai_suspected == TRUE</code>)</p>
+<ul>
+<li>
+<strong>Agent branch prefixes</strong> such as <code>copilot/fix-thing</code> or <code>codex/add-tests</code>. This is the longest-lived trace – it survives squash-merges – but it is weaker evidence, because a human may create the branch on the agent’s behalf: several agents cannot open pull requests themselves, so a developer runs the agent locally, pushes its branch, and opens the PR under their own account. Treat <code>ai</code> as a lower bound and <code>ai | ai_suspected</code> as an upper bound.</li>
+</ul>
+<p>Separately, <code>ai_mention</code> flags text that <em>addresses</em> an agent (<code>@copilot fix this</code>), which is a proxy for how much humans are prompting AI.</p>
+<p>Undisclosed assistance – code written with editor completions and committed under a human identity with no trailer – is not detectable from API metadata at all. Every figure this package produces is therefore a lower bound.</p>
+</div>
+<div class="section level2">
+<h2 id="copilot-usage-metrics">Copilot usage metrics<a class="anchor" aria-label="anchor" href="#copilot-usage-metrics"></a>
+</h2>
+<p>If you administer the organization, <code><a href="reference/gh_copilot_metrics.html">gh_copilot_metrics()</a></code> wraps GitHub’s Copilot usage metrics API (suggestion/acceptance counts, lines suggested and accepted, active users, chat activity). Two caveats matter:</p>
+<ul>
+<li>It requires <strong>organization ownership</strong> <em>and</em> the <strong>“Copilot usage metrics” policy enabled</strong>; otherwise every request returns <code>HTTP 403</code>.</li>
+<li>Metrics are aggregated at the <strong>organization/enterprise level</strong>. There is no public per-repository endpoint for suggestion counts, and nothing exposes tokens or hours spent. For repositories you do not administer, the history-based measures above are the only option.</li>
+</ul>
+<p><code><a href="reference/gh_copilot_seats.html">gh_copilot_seats()</a></code> is far more accessible (it needs only <code>read:org</code>) and reports per-user seat assignment and last activity.</p>
 </div>
 <div class="section level2">
 <h2 id="related-work">Related work<a class="anchor" aria-label="anchor" href="#related-work"></a>

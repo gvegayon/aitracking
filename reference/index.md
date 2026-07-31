@@ -23,8 +23,22 @@ Download commit histories, traffic, interactions, and languages.
   : Retrieve download counts of release assets
 - [`gh_interactions()`](https://gvegayon.github.io/aitracking/reference/gh_interactions.md)
   : Retrieve user interactions within a repository
+- [`gh_assignments()`](https://gvegayon.github.io/aitracking/reference/gh_assignments.md)
+  : Retrieve issue and pull request assignments
+- [`gh_pulls()`](https://gvegayon.github.io/aitracking/reference/gh_pulls.md)
+  : Retrieve pull requests, including their head branch
 - [`gh_languages()`](https://gvegayon.github.io/aitracking/reference/gh_languages.md)
   : Retrieve the language composition of a repository
+
+## Copilot usage
+
+Organization-level Copilot usage, i.e., how much the tool is used rather
+than what it left behind in the repository.
+
+- [`gh_copilot_metrics()`](https://gvegayon.github.io/aitracking/reference/gh_copilot_metrics.md)
+  : Retrieve Copilot usage metrics for an organization or enterprise
+- [`gh_copilot_seats()`](https://gvegayon.github.io/aitracking/reference/gh_copilot_seats.md)
+  : Retrieve Copilot seat assignments for an organization
 
 ## Analysis and visualization
 
@@ -45,3 +59,7 @@ Classify AI involvement and summarize/plot project activity.
   : Commit history of the UofUEpiBio/epiworld C++ library
 - [`epiworld_interactions`](https://gvegayon.github.io/aitracking/reference/epiworld_interactions.md)
   : Issue and pull request interactions of UofUEpiBio/epiworld
+- [`epiworld_assignments`](https://gvegayon.github.io/aitracking/reference/epiworld_assignments.md)
+  : Issue and pull request assignments of UofUEpiBio/epiworld
+- [`epiworld_pulls`](https://gvegayon.github.io/aitracking/reference/epiworld_pulls.md)
+  : Pull requests of UofUEpiBio/epiworld

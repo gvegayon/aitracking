@@ -37,6 +37,22 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="aitracking-development-version">aitracking (development version)<a class="anchor" aria-label="anchor" href="#aitracking-development-version"></a></h2>
+<ul><li>New <code><a href="../reference/gh_assignments.html">gh_assignments()</a></code>: issues and pull requests together with the accounts they are assigned to, flagging the ones delegated to an AI coding agent (<code>assigned_ai</code>, <code>assigned_agent</code>). Assigning an issue to Copilot is how the coding agent is given a task, so these rows measure <em>delegation</em> to AI rather than AI involvement in the resulting code.</li>
+<li>New <code><a href="../reference/gh_pulls.html">gh_pulls()</a></code>: pull requests including the head branch name.</li>
+<li>New <code><a href="../reference/gh_copilot_metrics.html">gh_copilot_metrics()</a></code> and <code><a href="../reference/gh_copilot_seats.html">gh_copilot_seats()</a></code>: organization-level Copilot usage. Note that usage metrics require organization ownership and the “Copilot usage metrics” policy; there is no public per-repository endpoint, and no endpoint exposes tokens or hours spent.</li>
+<li>
+<code><a href="../reference/ai_classify.html">ai_classify()</a></code> now reports evidence in two tiers. <code>ai</code> stays <strong>confirmed</strong> involvement (agent identity, or an attribution trailer); the new <code>ai_suspected</code> marks <strong>suspected</strong> involvement, currently agent branch prefixes such as <code>copilot/...</code> or <code>codex/...</code>. A branch prefix is weaker evidence because a human may create the branch on the agent’s behalf. The new <code>ai_evidence</code> column records which rule fired (<code>"identity"</code>/<code>"trailer"</code>/<code>"branch"</code>), and <code>assignee</code> and <code>branch</code> columns are now scanned by default.</li>
+<li>
+<code><a href="../reference/ai_classify.html">ai_classify()</a></code> recognizes the <code>Assisted-by:</code> trailer alongside <code>Co-authored-by:</code> and <code>Generated with</code>.</li>
+<li>
+<code><a href="../reference/ai_patterns.html">ai_patterns()</a></code> gained <code>jules</code> and <code>coderabbit</code>, and split Jules out of the <code>gemini</code> pattern.</li>
+<li>
+<code><a href="../reference/plot_timeline.html">plot_timeline()</a></code> draws suspected AI involvement as its own band, so the confirmed count is never inflated by it.</li>
+<li>Failed API requests now report the HTTP status and its likely cause (bad token, exhausted rate limit, missing scope, org policy) instead of a generic connection error.</li>
+<li>New example datasets <code>epiworld_assignments</code> and <code>epiworld_pulls</code>.</li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.0" id="aitracking-010">aitracking 0.1.0<a class="anchor" aria-label="anchor" href="#aitracking-010"></a></h2>
 <ul><li>First public version. Includes:
 <ul><li>GitHub REST API access with base R connections (<code><a href="../reference/gh_api.html">gh_api()</a></code>, <code><a href="../reference/gh_token.html">gh_token()</a></code>).</li>
@@ -47,7 +63,8 @@
 <li>Example datasets from the UofUEpiBio/epiworld C++ library.</li>
 </ul></li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

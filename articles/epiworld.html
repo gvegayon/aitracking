@@ -278,11 +278,74 @@
 <span><span class="co">#&gt; 6:          apulsipher  FALSE    61</span></span>
 <span><span class="co">#&gt; 7:            gvegayon   TRUE     1</span></span></code></pre></div>
 </div>
+</section><section class="level2"><h2 id="delegation-what-was-handed-to-an-agent">Delegation: what was handed to an agent<a class="anchor" aria-label="anchor" href="#delegation-what-was-handed-to-an-agent"></a>
+</h2>
+<p>Commits and comments tell you where AI <em>ended up</em>. Assignments tell you where it was <em>asked to go</em>: assigning an issue to Copilot is how GitHub’s coding agent is given a task. <code><a href="../reference/gh_assignments.html">gh_assignments()</a></code> returns one row per issue/assignee pair and flags the AI ones:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">epiworld_assignments</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">epiworld_assignments</span><span class="op">[</span><span class="va">assigned_ai</span> <span class="op">==</span> <span class="cn">TRUE</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">type</span>, <span class="va">assignee</span>, <span class="va">assignee_type</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;            type assignee assignee_type     N</span></span>
+<span><span class="co">#&gt;          &lt;char&gt;   &lt;char&gt;        &lt;char&gt; &lt;int&gt;</span></span>
+<span><span class="co">#&gt; 1:        issue  Copilot           Bot    40</span></span>
+<span><span class="co">#&gt; 2: pull_request  Copilot           Bot    54</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">epiworld_assignments</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span></span>
+<span>  rows        <span class="op">=</span> <span class="va">.N</span>,</span>
+<span>  to_ai       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">assigned_ai</span><span class="op">)</span>,</span>
+<span>  share_to_ai <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">assigned_ai</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;     rows to_ai share_to_ai</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:   334    94       0.281</span></span></code></pre></div>
+</div>
+<p>Note the <code>assignee_type</code>: GitHub reports the coding agent as the login <code>Copilot</code> of type <code>Bot</code>, but <em>without</em> the usual <code>[bot]</code> suffix. Matching on the suffix alone would miss it entirely – and matching on <code>type == "Bot"</code> alone would miss agents such as <code>cursoragent</code> and <code>openhands-agent</code>, which are plain <code>User</code> accounts. This is why detection here is pattern-based.</p>
+</section><section class="level2"><h2 id="confirmed-vs--suspected-the-branch-prefix-signal">Confirmed vs. suspected: the branch-prefix signal<a class="anchor" aria-label="anchor" href="#confirmed-vs--suspected-the-branch-prefix-signal"></a>
+</h2>
+<p>Coding agents push to prefixed branches, and that prefix is often the longest-lived trace of AI involvement: it survives squash-merges and shows up even where no bot account and no commit trailer do. <code><a href="../reference/gh_pulls.html">gh_pulls()</a></code> returns the head branch, and <code><a href="../reference/ai_classify.html">ai_classify()</a></code> reads it:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">epiworld_pulls</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">pulls</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ai_classify.html">ai_classify</a></span><span class="op">(</span><span class="va">epiworld_pulls</span>, patterns <span class="op">=</span> <span class="va">ai_only</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">pulls</span><span class="op">[</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">ai</span>, <span class="va">ai_suspected</span>, <span class="va">ai_evidence</span>, <span class="va">ai_agent</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;        ai ai_suspected ai_evidence ai_agent     N</span></span>
+<span><span class="co">#&gt;    &lt;lgcl&gt;       &lt;lgcl&gt;      &lt;char&gt;   &lt;char&gt; &lt;int&gt;</span></span>
+<span><span class="co">#&gt; 1:  FALSE        FALSE        &lt;NA&gt;     &lt;NA&gt;    98</span></span>
+<span><span class="co">#&gt; 2:   TRUE        FALSE    identity  copilot    54</span></span>
+<span><span class="co">#&gt; 3:  FALSE         TRUE      branch   openai     2</span></span></code></pre></div>
+</div>
+<p>The two tiers are doing real work here. Every <code>copilot/*</code> pull request was opened by the <code>Copilot</code> bot account, so it is <strong>confirmed</strong> via <code>identity</code>. The <code>codex/*</code> ones look similar but were opened by a human:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pulls</span><span class="op">[</span><span class="va">ai_suspected</span> <span class="op">==</span> <span class="cn">TRUE</span>, <span class="fu">.</span><span class="op">(</span><span class="va">number</span>, <span class="va">user</span>, <span class="va">branch</span>, <span class="va">ai_agent</span>, <span class="va">ai_evidence</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;    number     user                              branch ai_agent ai_evidence</span></span>
+<span><span class="co">#&gt;     &lt;int&gt;   &lt;char&gt;                              &lt;char&gt;   &lt;char&gt;      &lt;char&gt;</span></span>
+<span><span class="co">#&gt; 1:    232 gvegayon         codex/switch-docs-to-mrdocs   openai      branch</span></span>
+<span><span class="co">#&gt; 2:    237 gvegayon codex/poisson-default-using-le-cams   openai      branch</span></span></code></pre></div>
+</div>
+<p>That is exactly why a branch prefix is recorded as <code>ai_suspected</code> rather than folded into <code>ai</code>. Agents that cannot open pull requests themselves leave this pattern: a developer runs the agent locally, pushes the branch it produced, and opens the PR under their own account. The prefix says AI was probably involved; it does not say who wrote which line, and in principle a human could name a branch <code>copilot/...</code> with no agent involved at all.</p>
+<p>Read <code>ai</code> as a lower bound on AI involvement and <code>ai | ai_suspected</code> as an upper bound:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pulls</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span></span>
+<span>  pull_requests <span class="op">=</span> <span class="va">.N</span>,</span>
+<span>  confirmed     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ai</span><span class="op">)</span>,</span>
+<span>  upper_bound   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ai</span> <span class="op">|</span> <span class="va">ai_suspected</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;    pull_requests confirmed upper_bound</span></span>
+<span><span class="co">#&gt;            &lt;int&gt;     &lt;int&gt;       &lt;int&gt;</span></span>
+<span><span class="co">#&gt; 1:           154        54          56</span></span></code></pre></div>
+</div>
 </section><section class="level2"><h2 id="evolution-of-the-projects-size">Evolution of the project’s size<a class="anchor" aria-label="anchor" href="#evolution-of-the-projects-size"></a>
 </h2>
 <p><code><a href="../reference/loc_evolution.html">loc_evolution()</a></code> accumulates net lines changed (additions minus deletions) over time–an approximation of the project’s size in lines:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/loc_evolution.html">loc_evolution</a></span><span class="op">(</span><span class="va">commits</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
@@ -304,7 +367,7 @@
 </div>
 <p>For a by-language breakdown, retrieve file-level detail with <code>gh_commit_lines(commits, files = TRUE)</code> and pass that to <code><a href="../reference/loc_evolution.html">loc_evolution()</a></code>, or get the current snapshot with:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gh_languages.html">gh_languages</a></span><span class="op">(</span><span class="st">"UofUEpiBio/epiworld"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="caveats">Caveats<a class="anchor" aria-label="anchor" href="#caveats"></a>

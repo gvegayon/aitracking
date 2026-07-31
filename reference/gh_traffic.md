@@ -52,11 +52,13 @@ indefinitely–see
 ## See also
 
 Other retrieval:
+[`gh_assignments()`](https://gvegayon.github.io/aitracking/reference/gh_assignments.md),
 [`gh_commit_lines()`](https://gvegayon.github.io/aitracking/reference/gh_commit_lines.md),
 [`gh_commits()`](https://gvegayon.github.io/aitracking/reference/gh_commits.md),
 [`gh_downloads()`](https://gvegayon.github.io/aitracking/reference/gh_downloads.md),
 [`gh_interactions()`](https://gvegayon.github.io/aitracking/reference/gh_interactions.md),
-[`gh_languages()`](https://gvegayon.github.io/aitracking/reference/gh_languages.md)
+[`gh_languages()`](https://gvegayon.github.io/aitracking/reference/gh_languages.md),
+[`gh_pulls()`](https://gvegayon.github.io/aitracking/reference/gh_pulls.md)
 
 ## Examples
 

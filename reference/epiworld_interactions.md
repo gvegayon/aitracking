@@ -25,4 +25,6 @@ GitHub REST API, <https://github.com/UofUEpiBio/epiworld>.
 ## See also
 
 Other data:
-[`epiworld_commits`](https://gvegayon.github.io/aitracking/reference/epiworld_commits.md)
+[`epiworld_assignments`](https://gvegayon.github.io/aitracking/reference/epiworld_assignments.md),
+[`epiworld_commits`](https://gvegayon.github.io/aitracking/reference/epiworld_commits.md),
+[`epiworld_pulls`](https://gvegayon.github.io/aitracking/reference/epiworld_pulls.md)
