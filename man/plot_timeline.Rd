@@ -8,6 +8,9 @@ plot_timeline(
   x,
   by = c("commits", "lines"),
   interval = c("month", "week", "day"),
+  date_col = "date",
+  ai_col = "ai",
+  suspected_col = "ai_suspected",
   main = NULL,
   col = NULL,
   legend_pos = "topleft",
@@ -16,19 +19,33 @@ plot_timeline(
 )
 }
 \arguments{
-\item{x}{A \code{data.frame}/\code{data.table} with a \code{date} column (\code{POSIXct}),
-typically the output of \code{\link[=gh_commits]{gh_commits()}}, \code{\link[=gh_commit_lines]{gh_commit_lines()}}, or
-\code{\link[=ai_classify]{ai_classify()}}. For \code{by = "lines"}, columns \code{additions} and \code{deletions}
-are required (see \code{\link[=gh_commit_lines]{gh_commit_lines()}}).}
+\item{x}{A \code{data.frame}/\code{data.table} with a date column (\code{POSIXct}; see
+\code{date_col}), typically the output of \code{\link[=gh_commits]{gh_commits()}}, \code{\link[=gh_commit_lines]{gh_commit_lines()}},
+or \code{\link[=ai_classify]{ai_classify()}}. For \code{by = "lines"}, columns \code{additions} and
+\code{deletions} are required (see \code{\link[=gh_commit_lines]{gh_commit_lines()}}).}
 
-\item{by}{Either \code{"commits"} (default) or \code{"lines"}.}
+\item{by}{Either \code{"commits"} (default, i.e., a row count) or \code{"lines"}.
+Despite the name, \code{by = "commits"} counts rows generically, so it works
+just as well on issues/PRs (see Examples) as on commits.}
 
-\item{interval}{Time bin: \code{"month"} (default), \code{"week"}, or \code{"day"}.}
+\item{interval}{Time bin: \code{"month"} (default), \code{"week"}, or \code{"day"}. Bins
+are calendar-aligned (e.g., \code{"week"} bins start on Sundays), and only span
+the range actually present in \code{x}--filter \code{x} first to zoom into a shorter
+window (see Examples).}
+
+\item{date_col, ai_col, suspected_col}{Names of the columns holding,
+respectively, the timestamp, the confirmed-AI-involvement flag, and the
+suspected-AI-involvement flag. Default to \code{"date"}, \code{"ai"}, and
+\code{"ai_suspected"}--the names \code{\link[=gh_commits]{gh_commits()}} and \code{\link[=ai_classify]{ai_classify()}} use. Pass
+\code{ai_col = "assigned_ai"} to plot the output of \code{\link[=gh_assignments]{gh_assignments()}}, whose
+columns are named differently; \code{suspected_col} can be left at its default
+since a column that does not exist is treated as "no suspected tier"
+(see \code{by = "commits"} below).}
 
 \item{main}{Plot title. A sensible default is used when \code{NULL}.}
 
-\item{col}{Bar colors. Defaults: gray/red (human/AI) for commits,
-blue/red (added/deleted) for lines.}
+\item{col}{Bar colors. Defaults: gray/gold/red (human/suspected/confirmed)
+for commits, blue/red (added/deleted) for lines.}
 
 \item{legend_pos}{Position of the legend (see \code{\link[graphics:legend]{graphics::legend()}}), or
 \code{NULL} to suppress it.}
@@ -55,6 +72,18 @@ epiworld_commits |>
 
 epiworld_commits |>
   plot_timeline(by = "lines")
+
+# Zoom into a shorter window by filtering first, and switch to daily bins
+epiworld_commits[epiworld_commits$date < as.POSIXct("2022-01-01"), ] |>
+  plot_timeline(by = "commits", interval = "day")
+
+# Reuse on a differently-shaped table, e.g. gh_assignments()'s output
+data(epiworld_assignments)
+epiworld_assignments |>
+  plot_timeline(
+    by = "commits", date_col = "created_at", ai_col = "assigned_ai",
+    main = "Issues/PRs assigned over time"
+  )
 
 }
 \seealso{

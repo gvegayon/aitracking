@@ -155,6 +155,47 @@ commit-based timeline above uses the full history unmodified.)
 plot_timeline(commits_since_import, by = "lines")
 ```
 
+### Zooming in: daily and weekly bins
+
+`interval` also accepts `"week"` and `"day"`. `plot_timeline()` only plots
+the range actually present in its input, so to zoom into a shorter window --
+say, a specific month or quarter rather than the project's full history --
+filter the data first and switch the interval. Here is January through March
+2025, the quiet stretch right before AI got involved:
+
+```{r}
+#| label: zoom-window
+zoom <- commits[date >= as.POSIXct("2025-01-01") & date < as.POSIXct("2025-04-01")]
+nrow(zoom)
+```
+
+```{r}
+#| label: zoom-commits
+plot_timeline(zoom, by = "commits", interval = "day")
+```
+
+```{r}
+#| label: zoom-lines
+plot_timeline(zoom, by = "lines", interval = "day")
+```
+
+`r nrow(zoom)` commits in three months makes for a sparse plot, but the
+binning itself is exactly what you would get on a busier repository or a
+wider window -- one bar per calendar day, none of them merged into weeks or
+months. The lines view has a spike worth checking rather than taking at face
+value:
+
+```{r}
+#| label: zoom-spike
+zoom[which.max(additions), .(sha = substr(sha, 1, 7), additions, message = substr(message, 1, 60))] |>
+  knitr::kable()
+```
+
+That commit is adding image assets, not code -- a reminder of the caveat
+below that net lines changed includes non-code files. `interval = "week"`
+sits between the two, useful when daily bins are too sparse but monthly bins
+are too coarse.
+
 ## How did activity change since AI got involved?
 
 A simple before/after comparison of monthly activity. The initial-import
@@ -287,6 +328,29 @@ Note the `assignee_type`: GitHub reports the coding agent as the login
 the suffix alone would miss it entirely -- and matching on `type == "Bot"`
 alone would miss agents such as `cursoragent` and `openhands-agent`, which
 are plain `User` accounts. This is why detection here is pattern-based.
+
+`plot_timeline()` is not limited to commit tables: pass `date_col` and
+`ai_col` to point it at the timestamp and AI-flag columns of a different
+table, here `gh_assignments()`'s `created_at` and `assigned_ai`. We drop the
+unassigned rows first, since "human vs. AI" is not a meaningful split for an
+issue nobody was handed:
+
+```{r}
+#| label: assignments-timeline
+epiworld_assignments[!is.na(assignee)] |>
+  plot_timeline(
+    by = "commits", date_col = "created_at", ai_col = "assigned_ai",
+    main = "Issues/PRs assigned over time"
+  )
+```
+
+There is no suspected tier here, and deliberately so: an assignee is a
+direct identity, not something inferred from a branch name the way
+`ai_suspected` is for commits and pull requests below, so every assignment is
+either confirmed-human or confirmed-AI. `plot_timeline()` detects that the
+suspected column is absent and drops that band from the legend automatically
+-- the same mechanism that would show it if `epiworld_pulls` were plotted
+this way instead.
 
 ## Confirmed vs. suspected: the branch-prefix signal
 
