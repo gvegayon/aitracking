@@ -153,11 +153,22 @@
 <span><span class="co">#&gt;                                                          &lt;char&gt;   &lt;char&gt;</span></span>
 <span><span class="co">#&gt; 1: Updates to the mixing model and the measles model (+tests) (  copilot</span></span></code></pre></div>
 </div>
+<p>Note that this commit’s <em>author</em> is a human. It was flagged because the message carries an attribution trailer left by a squash-merged pull request:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">commits</span><span class="op">[</span><span class="va">ai</span> <span class="op">==</span> <span class="cn">TRUE</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.min</a></span><span class="op">(</span><span class="va">date</span><span class="op">)</span>, <span class="va">message</span><span class="op">]</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="st">"\n"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span>pattern <span class="op">=</span> <span class="st">"Co-authored-by"</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Co-authored-by: Copilot &lt;175728472+Copilot@users.noreply.github.com&gt;"</span></span></code></pre></div>
+</div>
+<p>This is the main reason <code><a href="../reference/ai_classify.html">ai_classify()</a></code> looks at commit messages and not just at author identities: when a PR written with an agent is squash-merged, the resulting commit is attributed to whoever merged it, and the trailer is the only trace of AI involvement left in the commit history.</p>
 </section><section class="level2"><h2 id="visualizing-the-timeline">Visualizing the timeline<a class="anchor" aria-label="anchor" href="#visualizing-the-timeline"></a>
 </h2>
 <p><code><a href="../reference/plot_timeline.html">plot_timeline()</a></code> shows monthly activity. Since the data went through <code><a href="../reference/ai_classify.html">ai_classify()</a></code>, commit bars are split into human and AI-involved:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_timeline.html">plot_timeline</a></span><span class="op">(</span><span class="va">commits</span>, by <span class="op">=</span> <span class="st">"commits"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
@@ -168,7 +179,7 @@
 </div>
 <p>The same timeline in terms of lines added and deleted:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_timeline.html">plot_timeline</a></span><span class="op">(</span><span class="va">commits</span>, by <span class="op">=</span> <span class="st">"lines"</span><span class="op">)</span></span></code></pre></div>
 <div class="cell-output-display">
 <div>
@@ -181,7 +192,7 @@
 </h2>
 <p>A simple before/after comparison of monthly activity:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">commits</span><span class="op">[</span>, <span class="va">period</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/fifelse.html" class="external-link">fifelse</a></span><span class="op">(</span><span class="va">date</span> <span class="op">&lt;</span> <span class="va">first_ai</span>, <span class="st">"1. Before AI"</span>, <span class="st">"2. Since AI"</span><span class="op">)</span><span class="op">]</span></span>
 <span></span>
 <span><span class="va">stats</span> <span class="op">&lt;-</span> <span class="va">commits</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span></span>
@@ -210,21 +221,25 @@
 </div>
 <p>And within the AI period, how much of the work is AI-involved?</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">commits</span><span class="op">[</span><span class="va">period</span> <span class="op">==</span> <span class="st">"2. Since AI"</span>, <span class="fu">.</span><span class="op">(</span></span>
+<div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">share</span> <span class="op">&lt;-</span> <span class="va">commits</span><span class="op">[</span><span class="va">period</span> <span class="op">==</span> <span class="st">"2. Since AI"</span>, <span class="fu">.</span><span class="op">(</span></span>
 <span>  commits     <span class="op">=</span> <span class="va">.N</span>,</span>
 <span>  lines_added <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">additions</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">)</span>, by <span class="op">=</span> <span class="va">ai</span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">share</span></span>
 <span><span class="co">#&gt;        ai commits lines_added</span></span>
 <span><span class="co">#&gt;    &lt;lgcl&gt;   &lt;int&gt;       &lt;int&gt;</span></span>
 <span><span class="co">#&gt; 1:   TRUE      42       83724</span></span>
 <span><span class="co">#&gt; 2:  FALSE      43       42220</span></span></code></pre></div>
 </div>
+<p>Two things stand out. First, AI involvement is substantial once it starts: 49% of commits and 66% of added lines in the AI period are AI-involved. Second–and this is why the raw counts deserve care–overall activity did <strong>not</strong> accelerate: the project went from 15.5 to 6.5 commits per month.</p>
+<p>That drop is a good reminder that this is observational data, not an experiment. epiworld is a mature library, and the AI period coincides with a phase of consolidation rather than initial development; the same comparison on a young project would likely look very different. What the data supports is a statement about <em>composition</em> (how much of the work AI touches), not about causation (whether AI made the project faster).</p>
 </section><section class="level2"><h2 id="human-requests-to-ai-the-conversation-layer">Human requests to AI: the conversation layer<a class="anchor" aria-label="anchor" href="#human-requests-to-ai-the-conversation-layer"></a>
 </h2>
 <p>Commit histories under-count AI involvement: when a PR authored by an agent is squash-merged, the merge commit may carry a human identity. The issue/PR conversation retrieved by <code><a href="../reference/gh_interactions.html">gh_interactions()</a></code> preserves that history. <code><a href="../reference/ai_classify.html">ai_classify()</a></code> adds two flags here: <code>ai</code> (the comment/issue was authored by an AI agent) and <code>ai_mention</code> (the text addresses or mentions an agent–a proxy for humans prompting AI):</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">interactions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ai_classify.html">ai_classify</a></span><span class="op">(</span><span class="va">interactions</span>, patterns <span class="op">=</span> <span class="va">ai_only</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Overall activity by type</span></span>
@@ -251,7 +266,7 @@
 </div>
 <p>Activity by user (top 10), distinguishing AI agents from humans:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">interactions</span><span class="op">[</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">user</span>, <span class="va">ai</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">N</span><span class="op">)</span><span class="op">]</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                   user     ai     N</span></span>
 <span><span class="co">#&gt;                 &lt;char&gt; &lt;lgcl&gt; &lt;int&gt;</span></span>
@@ -267,7 +282,7 @@
 </h2>
 <p><code><a href="../reference/loc_evolution.html">loc_evolution()</a></code> accumulates net lines changed (additions minus deletions) over time–an approximation of the project’s size in lines:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">lo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/loc_evolution.html">loc_evolution</a></span><span class="op">(</span><span class="va">commits</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
@@ -289,7 +304,7 @@
 </div>
 <p>For a by-language breakdown, retrieve file-level detail with <code>gh_commit_lines(commits, files = TRUE)</code> and pass that to <code><a href="../reference/loc_evolution.html">loc_evolution()</a></code>, or get the current snapshot with:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/gh_languages.html">gh_languages</a></span><span class="op">(</span><span class="st">"UofUEpiBio/epiworld"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="caveats">Caveats<a class="anchor" aria-label="anchor" href="#caveats"></a>

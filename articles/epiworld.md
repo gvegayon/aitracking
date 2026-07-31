@@ -114,6 +114,27 @@ commits[ai == TRUE][which.min(date), .(
 #> 1: Updates to the mixing model and the measles model (+tests) (  copilot
 ```
 
+Note that this commit’s *author* is a human. It was flagged because the
+message carries an attribution trailer left by a squash-merged pull
+request:
+
+``` r
+
+commits[ai == TRUE][which.min(date), message] |>
+  strsplit("\n") |>
+  unlist() |>
+  grep(pattern = "Co-authored-by", value = TRUE) |>
+  unique()
+#> [1] "Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>"
+```
+
+This is the main reason
+[`ai_classify()`](https://gvegayon.github.io/aitracking/reference/ai_classify.md)
+looks at commit messages and not just at author identities: when a PR
+written with an agent is squash-merged, the resulting commit is
+attributed to whoever merged it, and the trailer is the only trace of AI
+involvement left in the commit history.
+
 ## Visualizing the timeline
 
 [`plot_timeline()`](https://gvegayon.github.io/aitracking/reference/plot_timeline.md)
@@ -174,15 +195,30 @@ And within the AI period, how much of the work is AI-involved?
 
 ``` r
 
-commits[period == "2. Since AI", .(
+share <- commits[period == "2. Since AI", .(
   commits     = .N,
   lines_added = sum(additions, na.rm = TRUE)
 ), by = ai]
+
+share
 #>        ai commits lines_added
 #>    <lgcl>   <int>       <int>
 #> 1:   TRUE      42       83724
 #> 2:  FALSE      43       42220
 ```
+
+Two things stand out. First, AI involvement is substantial once it
+starts: 49% of commits and 66% of added lines in the AI period are
+AI-involved. Second–and this is why the raw counts deserve care–overall
+activity did **not** accelerate: the project went from 15.5 to 6.5
+commits per month.
+
+That drop is a good reminder that this is observational data, not an
+experiment. epiworld is a mature library, and the AI period coincides
+with a phase of consolidation rather than initial development; the same
+comparison on a young project would likely look very different. What the
+data supports is a statement about *composition* (how much of the work
+AI touches), not about causation (whether AI made the project faster).
 
 ## Human requests to AI: the conversation layer
 

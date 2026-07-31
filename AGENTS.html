@@ -59,6 +59,8 @@
 <ul><li>
 <strong>Testing:</strong> <a href="https://github.com/markvanderloo/tinytest" class="external-link">tinytest</a>. Tests live in <code>inst/tinytest/test_*.R</code> and are run by <code>tests/tinytest.R</code>. Network-dependent tests must be wrapped in <code>if (at_home() &amp;&amp; nzchar(gh_token())) { ... }</code> so CRAN/CI never need a token.</li>
 <li>
+<strong>Test parsing offline, not over the network.</strong> Each retrieval function is split in two: the part that calls the API, and an internal <code>as_*_dt()</code> parser that turns the parsed JSON into a <code>data.table</code> (<code>as_commits_dt()</code>, <code>as_commit_files_dt()</code>, <code>as_issues_dt()</code>, <code>as_comments_dt()</code>, <code>as_traffic_dt()</code>, <code>as_downloads_dt()</code>, <code>as_languages_dt()</code>). The parsers are tested in <code>inst/tinytest/test_parsers.R</code> against real API responses stored in <code>inst/tinytest/fixtures/*.json</code>, trimmed to the fields the parsers read. When you add a retrieval function, follow the same split and add a fixture; when GitHub changes a payload, refresh the fixture. This is what keeps coverage meaningful without a token.</li>
+<li>
 <strong>Documentation:</strong> roxygen2 with markdown (<code>Roxygen: list(markdown = TRUE)</code>). Regenerate with <code>Rscript -e 'roxygen2::roxygenize()'</code>. Never edit <code>man/</code> or <code>NAMESPACE</code> by hand.</li>
 <li>
 <strong>Vignettes and README:</strong> Quarto. The vignette engine is <code>quarto::html</code> (see <code>VignetteBuilder</code> in DESCRIPTION). <code>README.md</code> is generated from <code>README.qmd</code>; edit the <code>.qmd</code> and re-render with <code>quarto render README.qmd</code> — never edit <code>README.md</code> directly.</li>
@@ -89,7 +91,7 @@
 <div class="section level2">
 <h2 id="ci-github-actions">CI (GitHub Actions)<a class="anchor" aria-label="anchor" href="#ci-github-actions"></a></h2>
 <ul><li>
-<code>R-CMD-check.yaml</code>: runs <code>R CMD check</code> on Linux (release + devel), macOS, and Windows. Quarto CLI is installed on all runners (needed for the vignette).</li>
+<code>R-CMD-check.yaml</code>: runs <code>R CMD check</code> on Linux (release + devel), macOS, and Windows. Quarto CLI is installed on all runners (needed for the vignette). It also installs the package itself (<code>local::.</code>): quarto renders the vignette in a <strong>separate R process</strong>, which on Windows cannot see the temporary check library, so without this <code><a href="https://github.com/gvegayon/aitracking" class="external-link">library(aitracking)</a></code> fails there while Linux and macOS pass. Don’t remove it.</li>
 <li>
 <code>pkgdown.yaml</code>: builds the site and deploys it to the <code>gh-pages</code> branch → <a href="https://gvegayon.github.io/aitracking/" class="uri">https://gvegayon.github.io/aitracking/</a>.</li>
 <li>
