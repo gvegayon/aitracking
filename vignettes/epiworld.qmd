@@ -15,10 +15,7 @@ knitr:
     comment: "#>"
 ---
 
-This vignette walks through a complete analysis of AI involvement in a real
-project: [epiworld](https://github.com/UofUEpiBio/epiworld), a C++
-header-only library for agent-based epidemiological simulations developed at
-the University of Utah. We will answer three questions:
+This vignette walks through a complete analysis of AI involvement in a real project: [epiworld](https://github.com/UofUEpiBio/epiworld), a C++ header-only library for agent-based epidemiological simulations developed at the University of Utah. We will answer three questions:
 
 1. **When** did AI coding agents become involved in the project?
 2. **How much** of the commit and coding activity involves AI?
@@ -32,10 +29,7 @@ library(data.table)
 
 ## Getting the data
 
-Two calls retrieve everything we need. `gh_commits()` downloads the full
-commit history, `gh_commit_lines()` adds per-commit line counts (one API call
-per commit), and `gh_interactions()` downloads the issue/PR conversation
-layer--which survives even when PRs are squash-merged:
+Two calls retrieve everything we need. `gh_commits()` downloads the full commit history, `gh_commit_lines()` adds per-commit line counts (one API call per commit), and `gh_interactions()` downloads the issue/PR conversation layer--which survives even when PRs are squash-merged:
 
 ```{r}
 #| label: fetch
@@ -46,10 +40,7 @@ commits <- gh_commits("UofUEpiBio/epiworld") |>
 interactions <- gh_interactions("UofUEpiBio/epiworld")
 ```
 
-Both functions authenticate via `gh_token()` (an explicit token, the
-`GITHUB_PAT`/`GITHUB_TOKEN` environment variables, or the git credential
-store). So that this vignette builds offline, the package ships a snapshot of
-both datasets taken on 2026-07-31, and we use it from here on:
+Both functions authenticate via `gh_token()` (an explicit token, the `GITHUB_PAT`/`GITHUB_TOKEN` environment variables, or the git credential store). So that this vignette builds offline, the package ships a snapshot of both datasets taken on 2026-07-31, and we use it from here on:
 
 ```{r}
 #| label: load-data
@@ -66,12 +57,7 @@ commits[, .(sha = substr(sha, 1, 7), author, date, additions, deletions)] |>
 
 ## When did AI become involved?
 
-`ai_classify()` tags each commit using a small set of transparent rules: AI
-identities among authors/committers (e.g., `copilot[bot]`), and attribution
-trailers in the commit message (e.g., `Co-authored-by: Claude`). The default
-patterns are in `ai_patterns()`; the generic `bot` pattern also catches
-non-AI automation such as Dependabot, so we drop it here to focus on actual
-AI coding agents:
+`ai_classify()` tags each commit using a small set of transparent rules: AI identities among authors/committers (e.g., `copilot[bot]`), and attribution trailers in the commit message (e.g., `Co-authored-by: Claude`). The default patterns are in `ai_patterns()`; the generic `bot` pattern also catches non-AI automation such as Dependabot, so we drop it here to focus on actual AI coding agents:
 
 ```{r}
 #| label: classify
@@ -100,8 +86,7 @@ commits[ai == TRUE][which.min(date), .(
 )] |> knitr::kable()
 ```
 
-Note that this commit's *author* is a human. It was flagged because the
-message carries an attribution trailer left by a squash-merged pull request:
+Note that this commit's *author* is a human. It was flagged because the message carries an attribution trailer left by a squash-merged pull request:
 
 ```{r}
 #| label: first-ai-trailer
@@ -112,24 +97,18 @@ commits[ai == TRUE][which.min(date), message] |>
   unique()
 ```
 
-This is the main reason `ai_classify()` looks at commit messages and not just
-at author identities: when a PR written with an agent is squash-merged, the
-resulting commit is attributed to whoever merged it, and the trailer is the
-only trace of AI involvement left in the commit history.
+This is the main reason `ai_classify()` looks at commit messages and not just at author identities: when a PR written with an agent is squash-merged, the resulting commit is attributed to whoever merged it, and the trailer is the only trace of AI involvement left in the commit history.
 
 ## Visualizing the timeline
 
-`plot_timeline()` shows monthly activity. Since the data went through
-`ai_classify()`, commit bars are split into human and AI-involved:
+`plot_timeline()` shows monthly activity. Since the data went through `ai_classify()`, commit bars are split into human and AI-involved:
 
 ```{r}
 #| label: timeline-commits
 plot_timeline(commits, by = "commits")
 ```
 
-The same timeline in terms of lines added and deleted needs one adjustment
-first. epiworld's recorded git history begins with the import of the
-existing codebase, and that import alone lands in a single calendar month:
+The same timeline in terms of lines added and deleted needs one adjustment first. epiworld's recorded git history begins with the import of the existing codebase, and that import alone lands in a single calendar month:
 
 ```{r}
 #| label: first-month
@@ -140,15 +119,7 @@ rest_added        <- commits[format(date, "%Y-%m") != first_month, sum(additions
 commits_since_import <- commits[format(date, "%Y-%m") != first_month]
 ```
 
-That first month (`r first_month`) alone accounts for
-`r format(first_month_added, big.mark = ",")` lines added --
-`r round(first_month_added / rest_added, 1)` times as many as every month
-since, *combined* (`r format(rest_added, big.mark = ",")`). Leaving it in
-would compress the rest of the plot to a flat line near zero, so for this
-view only, we drop that first calendar month and start from the second month
-of recorded history onward. (Commit *counts* are not skewed the same way --
-that first month had 63 commits, well within the normal range -- so the
-commit-based timeline above uses the full history unmodified.)
+That first month (`r first_month`) alone accounts for `r format(first_month_added, big.mark = ",")` lines added -- `r round(first_month_added / rest_added, 1)` times as many as every month since, *combined* (`r format(rest_added, big.mark = ",")`). Leaving it in would compress the rest of the plot to a flat line near zero, so for this view only, we drop that first calendar month and start from the second month of recorded history onward. (Commit *counts* are not skewed the same way -- that first month had 63 commits, well within the normal range -- so the commit-based timeline above uses the full history unmodified.)
 
 ```{r}
 #| label: timeline-lines
@@ -157,11 +128,7 @@ plot_timeline(commits_since_import, by = "lines")
 
 ### Zooming in: daily and weekly bins
 
-`interval` also accepts `"week"` and `"day"`. `plot_timeline()` only plots
-the range actually present in its input, so to zoom into a shorter window --
-say, a specific month or quarter rather than the project's full history --
-filter the data first and switch the interval. Here is January through March
-2025, the quiet stretch right before AI got involved:
+`interval` also accepts `"week"` and `"day"`. `plot_timeline()` only plots the range actually present in its input, so to zoom into a shorter window -- say, a specific month or quarter rather than the project's full history -- filter the data first and switch the interval. Here is January through March 2025, the quiet stretch right before AI got involved:
 
 ```{r}
 #| label: zoom-window
@@ -179,11 +146,7 @@ plot_timeline(zoom, by = "commits", interval = "day")
 plot_timeline(zoom, by = "lines", interval = "day")
 ```
 
-`r nrow(zoom)` commits in three months makes for a sparse plot, but the
-binning itself is exactly what you would get on a busier repository or a
-wider window -- one bar per calendar day, none of them merged into weeks or
-months. The lines view has a spike worth checking rather than taking at face
-value:
+`r nrow(zoom)` commits in three months makes for a sparse plot, but the binning itself is exactly what you would get on a busier repository or a wider window -- one bar per calendar day, none of them merged into weeks or months. The lines view has a spike worth checking rather than taking at face value:
 
 ```{r}
 #| label: zoom-spike
@@ -191,17 +154,11 @@ zoom[which.max(additions), .(sha = substr(sha, 1, 7), additions, message = subst
   knitr::kable()
 ```
 
-That commit is adding image assets, not code -- a reminder of the caveat
-below that net lines changed includes non-code files. `interval = "week"`
-sits between the two, useful when daily bins are too sparse but monthly bins
-are too coarse.
+That commit is adding image assets, not code -- a reminder of the caveat below that net lines changed includes non-code files. `interval = "week"` sits between the two, useful when daily bins are too sparse but monthly bins are too coarse.
 
 ## How did activity change since AI got involved?
 
-A simple before/after comparison of monthly activity. The initial-import
-month identified above lands entirely in the "before AI" period, and its
-million-plus added lines would swamp the comparison, so we reuse
-`commits_since_import` here as well:
+A simple before/after comparison of monthly activity. The initial-import month identified above lands entirely in the "before AI" period, and its million-plus added lines would swamp the comparison, so we reuse `commits_since_import` here as well:
 
 ```{r}
 #| label: before-after
@@ -247,27 +204,13 @@ rate_before <- stats[period == "1. Before AI", commits_month]
 rate_since  <- stats[period == "2. Since AI", commits_month]
 ```
 
-Two things stand out. First, AI involvement is substantial once it starts:
-`r pc_commits`% of commits and `r pc_lines`% of added lines in the AI period
-are AI-involved. Second--and this is why the raw counts deserve care--overall
-activity did **not** accelerate: the project went from `r rate_before` to
-`r rate_since` commits per month.
+Two things stand out. First, AI involvement is substantial once it starts: `r pc_commits`% of commits and `r pc_lines`% of added lines in the AI period are AI-involved. Second--and this is why the raw counts deserve care--overall activity did **not** accelerate: the project went from `r rate_before` to `r rate_since` commits per month.
 
-That drop is a good reminder that this is observational data, not an
-experiment. epiworld is a mature library, and the AI period coincides with a
-phase of consolidation rather than initial development; the same comparison
-on a young project would likely look very different. What the data supports
-is a statement about *composition* (how much of the work AI touches), not
-about causation (whether AI made the project faster).
+That drop is a good reminder that this is observational data, not an experiment. epiworld is a mature library, and the AI period coincides with a phase of consolidation rather than initial development; the same comparison on a young project would likely look very different. What the data supports is a statement about *composition* (how much of the work AI touches), not about causation (whether AI made the project faster).
 
 ## Human requests to AI: the conversation layer
 
-Commit histories under-count AI involvement: when a PR authored by an agent
-is squash-merged, the merge commit may carry a human identity. The
-issue/PR conversation retrieved by `gh_interactions()` preserves that
-history. `ai_classify()` adds two flags here: `ai` (the comment/issue was
-authored by an AI agent) and `ai_mention` (the text addresses or mentions an
-agent--a proxy for humans prompting AI):
+Commit histories under-count AI involvement: when a PR authored by an agent is squash-merged, the merge commit may carry a human identity. The issue/PR conversation retrieved by `gh_interactions()` preserves that history. `ai_classify()` adds two flags here: `ai` (the comment/issue was authored by an AI agent) and `ai_mention` (the text addresses or mentions an agent--a proxy for humans prompting AI):
 
 ```{r}
 #| label: interactions
@@ -301,10 +244,7 @@ interactions[, .N, by = .(user, ai)][order(-N)] |>
 
 ## Delegation: what was handed to an agent
 
-Commits and comments tell you where AI *ended up*. Assignments tell you where
-it was *asked to go*: assigning an issue to Copilot is how GitHub's coding
-agent is given a task. `gh_assignments()` returns one row per issue/assignee
-pair and flags the AI ones:
+Commits and comments tell you where AI *ended up*. Assignments tell you where it was *asked to go*: assigning an issue to Copilot is how GitHub's coding agent is given a task. `gh_assignments()` returns one row per issue/assignee pair and flags the AI ones:
 
 ```{r}
 #| label: assignments
@@ -323,17 +263,9 @@ epiworld_assignments[, .(
 )] |> knitr::kable()
 ```
 
-Note the `assignee_type`: GitHub reports the coding agent as the login
-`Copilot` of type `Bot`, but *without* the usual `[bot]` suffix. Matching on
-the suffix alone would miss it entirely -- and matching on `type == "Bot"`
-alone would miss agents such as `cursoragent` and `openhands-agent`, which
-are plain `User` accounts. This is why detection here is pattern-based.
+Note the `assignee_type`: GitHub reports the coding agent as the login `Copilot` of type `Bot`, but *without* the usual `[bot]` suffix. Matching on the suffix alone would miss it entirely -- and matching on `type == "Bot"` alone would miss agents such as `cursoragent` and `openhands-agent`, which are plain `User` accounts. This is why detection here is pattern-based.
 
-`plot_timeline()` is not limited to commit tables: pass `date_col` and
-`ai_col` to point it at the timestamp and AI-flag columns of a different
-table, here `gh_assignments()`'s `created_at` and `assigned_ai`. We drop the
-unassigned rows first, since "human vs. AI" is not a meaningful split for an
-issue nobody was handed:
+`plot_timeline()` is not limited to commit tables: pass `date_col` and `ai_col` to point it at the timestamp and AI-flag columns of a different table, here `gh_assignments()`'s `created_at` and `assigned_ai`. We drop the unassigned rows first, since "human vs. AI" is not a meaningful split for an issue nobody was handed:
 
 ```{r}
 #| label: assignments-timeline
@@ -344,20 +276,11 @@ epiworld_assignments[!is.na(assignee)] |>
   )
 ```
 
-There is no suspected tier here, and deliberately so: an assignee is a
-direct identity, not something inferred from a branch name the way
-`ai_suspected` is for commits and pull requests below, so every assignment is
-either confirmed-human or confirmed-AI. `plot_timeline()` detects that the
-suspected column is absent and drops that band from the legend automatically
--- the same mechanism that would show it if `epiworld_pulls` were plotted
-this way instead.
+There is no suspected tier here, and deliberately so: an assignee is a direct identity, not something inferred from a branch name the way `ai_suspected` is for commits and pull requests below, so every assignment is either confirmed-human or confirmed-AI. `plot_timeline()` detects that the suspected column is absent and drops that band from the legend automatically -- the same mechanism that would show it if `epiworld_pulls` were plotted this way instead.
 
 ## Confirmed vs. suspected: the branch-prefix signal
 
-Coding agents push to prefixed branches, and that prefix is often the
-longest-lived trace of AI involvement: it survives squash-merges and shows up
-even where no bot account and no commit trailer do. `gh_pulls()` returns the
-head branch, and `ai_classify()` reads it:
+Coding agents push to prefixed branches, and that prefix is often the longest-lived trace of AI involvement: it survives squash-merges and shows up even where no bot account and no commit trailer do. `gh_pulls()` returns the head branch, and `ai_classify()` reads it:
 
 ```{r}
 #| label: pulls
@@ -368,9 +291,7 @@ pulls <- ai_classify(epiworld_pulls, patterns = ai_only)
 pulls[, .N, by = .(ai, ai_suspected, ai_evidence, ai_agent)] |> knitr::kable()
 ```
 
-The two tiers are doing real work here. Every `copilot/*` pull request was
-opened by the `Copilot` bot account, so it is **confirmed** via `identity`.
-The `codex/*` ones look similar but were opened by a human:
+The two tiers are doing real work here. Every `copilot/*` pull request was opened by the `Copilot` bot account, so it is **confirmed** via `identity`. The `codex/*` ones look similar but were opened by a human:
 
 ```{r}
 #| label: suspected
@@ -378,12 +299,7 @@ pulls[ai_suspected == TRUE, .(number, user, branch, ai_agent, ai_evidence)] |>
   knitr::kable()
 ```
 
-That is exactly why a branch prefix is recorded as `ai_suspected` rather than
-folded into `ai`. Agents that cannot open pull requests themselves leave this
-pattern: a developer runs the agent locally, pushes the branch it produced,
-and opens the PR under their own account. The prefix says AI was probably
-involved; it does not say who wrote which line, and in principle a human
-could name a branch `copilot/...` with no agent involved at all.
+That is exactly why a branch prefix is recorded as `ai_suspected` rather than folded into `ai`. Agents that cannot open pull requests themselves leave this pattern: a developer runs the agent locally, pushes the branch it produced, and opens the PR under their own account. The prefix says AI was probably involved; it does not say who wrote which line, and in principle a human could name a branch `copilot/...` with no agent involved at all.
 
 Read `ai` as a lower bound on AI involvement and `ai | ai_suspected` as an
 upper bound:
@@ -399,12 +315,13 @@ pulls[, .(
 
 ## Evolution of the project's size
 
-`loc_evolution()` accumulates net lines changed (additions minus deletions)
-over time--an approximation of the project's size in lines:
+`loc_evolution()` accumulates net lines changed (additions minus deletions) over time--an approximation of the project's size in lines:
 
 ```{r}
 #| label: loc
-lo <- loc_evolution(commits)
+# We look at commits since 2022 to avoid a large
+# initial commit that would dominate the plot
+lo <- loc_evolution(commits)[date >= '2022-01-01']
 
 plot(
   lo$date, lo$loc, type = "l", lwd = 2, col = "steelblue",
@@ -418,9 +335,7 @@ text(
 )
 ```
 
-For a by-language breakdown, retrieve file-level detail with
-`gh_commit_lines(commits, files = TRUE)` and pass that to `loc_evolution()`,
-or get the current snapshot with:
+For a by-language breakdown, retrieve file-level detail with `gh_commit_lines(commits, files = TRUE)` and pass that to `loc_evolution()`, or get the current snapshot with:
 
 ```{r}
 #| label: languages
@@ -430,20 +345,7 @@ gh_languages("UofUEpiBio/epiworld")
 
 ## Caveats
 
-- The "lines" timeline and the before/after comparison above exclude the
-  calendar month in which epiworld's recorded history begins, since it
-  contains the initial code import (over a million lines in a single month)
-  and would otherwise dominate every other month combined. This exclusion is
-  scoped to those two views; the cumulative size plot below is a historical
-  record and rightly includes that initial jump.
-- `ai_classify()` is deliberately parsimonious: it only catches AI
-  involvement that is *visible* (bot identities, attribution trailers,
-  mentions). Undisclosed AI assistance--e.g., code written with editor
-  completions and committed under a human identity--is not detectable from
-  API metadata alone, so these figures are lower bounds.
-- Net lines changed is a rough proxy for project size; it includes
-  documentation and data files unless filtered out (use the file-level
-  output of `gh_commit_lines()` to do so).
-- `gh_traffic()` (clones/views) only covers the last 14 days and requires
-  push access, so building a long download history requires periodic
-  snapshots.
+- The "lines" timeline and the before/after comparison above exclude the calendar month in which epiworld's recorded history begins, since it contains the initial code import (over a million lines in a single month) and would otherwise dominate every other month combined. This exclusion is scoped to those two views; the cumulative size plot below is a historical record and rightly includes that initial jump.
+- `ai_classify()` is deliberately parsimonious: it only catches AI involvement that is *visible* (bot identities, attribution trailers, mentions). Undisclosed AI assistance--e.g., code written with editor completions and committed under a human identity--is not detectable from API metadata alone, so these figures are lower bounds.
+- Net lines changed is a rough proxy for project size; it includes documentation and data files unless filtered out (use the file-level output of `gh_commit_lines()` to do so).
+- `gh_traffic()` (clones/views) only covers the last 14 days and requires push access, so building a long download history requires periodic snapshots.
